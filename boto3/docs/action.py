@@ -87,7 +87,7 @@ def document_action(section, resource_name, event_emitter, action_model,
     ignore_params = get_resource_ignore_params(action_model.request.params)
 
     example_return_value = 'response'
-    if action_model.resource:
+    if action_model.has_resource():
         example_return_value = xform_name(action_model.resource.type)
     example_resource_name = xform_name(resource_name)
     if service_model.service_name == resource_name:

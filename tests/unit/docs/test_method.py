@@ -66,7 +66,7 @@ class TestDocumentModelDrivenResourceMethod(BaseDocsTest):
         resource_action = self.service_resource_model.actions[0]
         # Override the return type of the action to be a resource
         # instead of the regular dictionary.
-        resource_action.resource = ResponseResource(
+        resource_action._resource = ResponseResource(
             {'type': 'Sample',
              'identifiers': [{
                  'target': 'Name', 'source': 'requestParameter',

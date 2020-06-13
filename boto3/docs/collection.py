@@ -117,7 +117,7 @@ def document_batch_action(section, resource_name, event_emitter,
         batch_action_model.request.params)
 
     example_return_value = 'response'
-    if batch_action_model.resource:
+    if batch_action_model.has_resource():
         example_return_value = xform_name(batch_action_model.resource.type)
 
     example_resource_name = xform_name(resource_name)

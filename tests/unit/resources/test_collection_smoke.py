@@ -12,7 +12,6 @@
 # language governing permissions and limitations under the License.
 import botocore.session
 from botocore import xform_name
-from nose.tools import assert_false
 
 from boto3.session import Session
 from boto3.resources.model import ResourceModel
@@ -91,8 +90,7 @@ def test_all_collections_have_paginators_if_needed():
             # Iterate over all of the collections for each resource model
             # and ensure that the collection has a paginator if it needs one.
             for collection_model in resource_model.collections:
-                yield (
-                    _assert_collection_has_paginator_if_needed, client,
+                    _assert_collection_has_paginator_if_needed(client,
                     service_name, resource_name, collection_model)
 
 
@@ -108,8 +106,7 @@ def _assert_collection_has_paginator_if_needed(
     # Make sure that if the operation looks paginated then there is
     # a paginator for the client to use for the collection.
     if not can_paginate_operation:
-        assert_false(
-            looks_paginated,
+        assert not looks_paginated, (
             'Collection %s on resource %s of service %s uses the operation '
             '%s, but the operation has no paginator even though it looks '
             'paginated.' % (

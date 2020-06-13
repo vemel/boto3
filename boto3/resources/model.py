@@ -63,16 +63,29 @@ class Action:
         #: (``string``) The name of the action
         self.name = name
         #: (:py:class:`Request`) This action's request or ``None``
-        self.request = None
+        self._request = None
         if 'request' in definition:
-            self.request = Request(definition.get('request', {}))
+            self._request = Request(definition.get('request', {}))
         #: (:py:class:`ResponseResource`) This action's resource or ``None``
-        self.resource = None
+        self._resource = None
         if 'resource' in definition:
-            self.resource = ResponseResource(definition.get('resource', {}),
+            self._resource = ResponseResource(definition.get('resource', {}),
                                              resource_defs)
         #: (``string``) The JMESPath search path or ``None``
         self.path = definition.get('path')
+
+    @property
+    def resource(self) -> "ResponseResource":
+        assert self._resource
+        return self._resource
+
+    @property
+    def request(self) -> "Request":
+        assert self._request
+        return self._request
+
+    def has_resource(self) -> bool:
+        return self._resource is not None
 
 
 class DefinitionWithParams:

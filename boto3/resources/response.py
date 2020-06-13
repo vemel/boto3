@@ -292,7 +292,7 @@ class ResourceHandler(object):
         parent: ServiceResource,
         identifiers: Dict[str, Any],
         resource_data: Optional[Dict[str, Any]],
-    ):
+    ) -> ServiceResource:
         """
         Handles the creation of a single response item by setting
         parameters and creating the appropriate resource instance.

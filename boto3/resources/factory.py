@@ -13,15 +13,16 @@
 
 import logging
 from functools import partial
-from typing import Dict, Any, cast, Type
+from typing import Dict, Any, cast, Type, Iterable, List, Callable
 
 from botocore.hooks import BaseEventHooks
+from botocore.waiter import WaiterModel, Waiter
+from botocore.client import BaseClient
 
-from boto3.resources.action import ServiceAction
-from boto3.resources.action import WaiterAction
+from boto3.resources.action import ServiceAction, WaiterAction, Action
 from boto3.resources.base import ResourceMeta, ServiceResource
-from boto3.resources.collection import CollectionFactory
-from boto3.resources.model import ResourceModel
+from boto3.resources.collection import CollectionFactory, CollectionManager
+from boto3.resources.model import ResourceModel, Identifier, Collection
 from boto3.resources.response import build_identifiers, ResourceHandler
 from boto3.exceptions import ResourceLoadException
 from boto3.docs import docstring
@@ -210,7 +211,7 @@ class ResourceFactory:
                 )
             attrs[name] = prop
 
-    def _load_collections(self, attrs, resource_model, service_context):
+    def _load_collections(self, attrs: Dict[str, Any], resource_model: ResourceModel, service_context: ServiceContext) -> None:
         """
         Load resource collections from the model. Each collection becomes
         a :py:class:`~boto3.resources.collection.CollectionManager` instance
@@ -224,8 +225,8 @@ class ResourceFactory:
                 service_context=service_context
             )
 
-    def _load_has_relations(self, attrs, resource_name, resource_model,
-                            service_context):
+    def _load_has_relations(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
+                            service_context: ServiceContext) -> None:
         """
         Load related resources, which are defined via a ``has``
         relationship but conceptually come in two forms:
@@ -258,11 +259,11 @@ class ResourceFactory:
         self._create_available_subresources_command(
             attrs, resource_model.subresources)
 
-    def _create_available_subresources_command(self, attrs, subresources):
+    def _create_available_subresources_command(self, attrs: Dict[str, Any], subresources: Iterable[Action]) -> None:
         _subresources = [subresource.name for subresource in subresources]
         _subresources = sorted(_subresources)
 
-        def get_available_subresources(factory_self):
+        def get_available_subresources(factory_self: Action) -> List[str]:
             """
             Returns a list of all the available sub-resources for this
             Resource.
@@ -275,8 +276,8 @@ class ResourceFactory:
 
         attrs['get_available_subresources'] = get_available_subresources
 
-    def _load_waiters(self, attrs, resource_name, resource_model,
-                      service_context):
+    def _load_waiters(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
+                      service_context: ServiceContext) -> None:
         """
         Load resource waiters from the model. Each waiter allows you to
         wait until a resource reaches a specific state by polling the state
@@ -289,11 +290,11 @@ class ResourceFactory:
                 service_context=service_context
             )
 
-    def _create_identifier(factory_self, identifier, resource_name):
+    def _create_identifier(factory_self, identifier: Identifier, resource_name: str) -> property:
         """
         Creates a read-only property for identifier attributes.
         """
-        def get_identifier(self):
+        def get_identifier(self: ServiceResource) -> Identifier:
             # The default value is set to ``None`` instead of
             # raising an AttributeError because when resources are
             # instantiated a check is made such that none of the
@@ -311,12 +312,12 @@ class ResourceFactory:
 
         return property(get_identifier)
 
-    def _create_identifier_alias(factory_self, resource_name, identifier,
-                                 member_model, service_context):
+    def _create_identifier_alias(factory_self, resource_name: str, identifier: Identifier,
+                                 member_model: ResourceModel, service_context: ServiceContext) -> property:
         """
         Creates a read-only property that aliases an identifier.
         """
-        def get_identifier(self):
+        def get_identifier(self: ServiceResource) -> Identifier:
             return getattr(self, '_' + identifier.name, None)
 
         get_identifier.__name__ = str(identifier.member_name)
@@ -331,8 +332,8 @@ class ResourceFactory:
 
         return property(get_identifier)
 
-    def _create_autoload_property(factory_self, resource_name, name,
-                                  snake_cased, member_model, service_context):
+    def _create_autoload_property(factory_self, resource_name: str, name: str,
+                                  snake_cased: str, member_model: ResourceModel, service_context: ServiceContext) -> property:
         """
         Creates a new property on the resource to lazy-load its value
         via the resource's ``load`` method (if it exists).
@@ -341,7 +342,7 @@ class ResourceFactory:
         # been loaded and return the cached value if possible. If not, then
         # it first checks to see if it CAN be loaded (raise if not), then
         # calls the load before returning the value.
-        def property_loader(self):
+        def property_loader(self: ServiceResource) -> Any:
             if self.meta.data is None:
                 if hasattr(self, 'load'):
                     self.load()
@@ -364,8 +365,8 @@ class ResourceFactory:
 
         return property(property_loader)
 
-    def _create_waiter(factory_self, resource_waiter_model, resource_name,
-                       service_context):
+    def _create_waiter(factory_self, resource_waiter_model: WaiterModel, resource_name: str,
+                       service_context: ServiceContext) -> Waiter:
         """
         Creates a new wait method for each resource where both a waiter and
         resource model is defined.
@@ -373,7 +374,7 @@ class ResourceFactory:
         waiter = WaiterAction(resource_waiter_model,
                               waiter_resource_name=resource_waiter_model.name)
 
-        def do_waiter(self, *args, **kwargs):
+        def do_waiter(self: BaseClient, *args: Any, **kwargs: Any) -> Waiter:
             waiter(self, *args, **kwargs)
 
         do_waiter.__name__ = str(resource_waiter_model.name)
@@ -387,8 +388,8 @@ class ResourceFactory:
         )
         return do_waiter
 
-    def _create_collection(factory_self, resource_name, collection_model,
-                           service_context):
+    def _create_collection(factory_self, resource_name: str, collection_model: Collection,
+                           service_context: ServiceContext) -> property:
         """
         Creates a new property on the resource to lazy-load a collection.
         """
@@ -397,7 +398,7 @@ class ResourceFactory:
             service_context=service_context,
             event_emitter=factory_self._emitter)
 
-        def get_collection(self):
+        def get_collection(self: ServiceResource) -> CollectionManager:
             return cls(
                 collection_model=collection_model, parent=self,
                 factory=factory_self, service_context=service_context)
@@ -407,8 +408,8 @@ class ResourceFactory:
             collection_model=collection_model, include_signature=False)
         return property(get_collection)
 
-    def _create_reference(factory_self, reference_model, resource_name,
-                          service_context):
+    def _create_reference(factory_self, reference_model: Action, resource_name: str,
+                          service_context: ServiceContext) -> property:
         """
         Creates a new property on the resource to lazy-load a reference.
         """
@@ -427,7 +428,7 @@ class ResourceFactory:
         needs_data = any(i.source == 'data' for i in
                          reference_model.resource.identifiers)
 
-        def get_reference(self):
+        def get_reference(self: ServiceResource) -> Action:
             # We need to lazy-evaluate the reference to handle circular
             # references between resources. We do this by loading the class
             # when first accessed.
@@ -437,7 +438,7 @@ class ResourceFactory:
             # to have their data loaded properly.
             if needs_data and self.meta.data is None and hasattr(self, 'load'):
                 self.load()
-            return handler(self, {}, self.meta.data)
+            return handler(self, {}, self.meta.data or {})
 
         get_reference.__name__ = str(reference_model.name)
         get_reference.__doc__ = docstring.ReferenceDocstring(
@@ -446,8 +447,8 @@ class ResourceFactory:
         )
         return property(get_reference)
 
-    def _create_class_partial(factory_self, subresource_model, resource_name,
-                              service_context):
+    def _create_class_partial(factory_self, subresource_model: Action, resource_name: str,
+                              service_context: ServiceContext) -> Callable[..., ServiceResource]:
         """
         Creates a new method which acts as a functools.partial, passing
         along the instance's low-level `client` to the new resource
@@ -455,7 +456,7 @@ class ResourceFactory:
         """
         name = subresource_model.resource.type
 
-        def create_resource(self, *args, **kwargs):
+        def create_resource(self: ServiceResource, *args: Any, **kwargs: Any) -> ServiceResource:
             # We need a new method here because we want access to the
             # instance's client.
             positional_args = []
@@ -490,8 +491,8 @@ class ResourceFactory:
         )
         return create_resource
 
-    def _create_action(factory_self, action_model, resource_name,
-                       service_context, is_load=False):
+    def _create_action(factory_self, action_model: Action, resource_name: str,
+                       service_context: ServiceContext, is_load: bool=False) -> Callable[..., Any]:
         """
         Creates a new method which makes a request to the underlying
         AWS service.

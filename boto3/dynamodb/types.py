@@ -12,10 +12,7 @@
 # language governing permissions and limitations under the License.
 from decimal import Decimal, Context, Clamped
 from decimal import Overflow, Inexact, Underflow, Rounded
-
-from boto3.compat import collections_abc
-
-from botocore.compat import six
+from typing import Any, Callable, Dict, List, Iterable, Set
 
 
 STRING = 'S'
@@ -35,7 +32,7 @@ DYNAMODB_CONTEXT = Context(
     traps=[Clamped, Overflow, Inexact, Rounded, Underflow])
 
 
-BINARY_TYPES = (bytearray, six.binary_type)
+BINARY_TYPES = (bytearray, bytes)
 
 
 class Binary(object):
@@ -45,33 +42,33 @@ class Binary(object):
     binary data for item in DynamoDB. It is essentially a wrapper around
     binary. Unicode and Python 3 string types are not allowed.
     """
-    def __init__(self, value):
+    def __init__(self, value: Any) -> None:
         if not isinstance(value, BINARY_TYPES):
             raise TypeError('Value must be of the following types: %s.' %
                             ', '.join([str(t) for t in BINARY_TYPES]))
-        self.value = value
+        self.value: Any = value
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, Binary):
             return self.value == other.value
         return self.value == other
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'Binary(%r)' % self.value
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.value
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.value)
 
 
-class TypeSerializer(object):
+class TypeSerializer:
     """This class serializes Python data types to DynamoDB types."""
-    def serialize(self, value):
+    def serialize(self, value: Any) -> Dict[str, Any]:
         """The method to serialize the Python data types.
 
         :param value: A python value to be serialized to DynamoDB. Here are
@@ -103,7 +100,7 @@ class TypeSerializer(object):
         serializer = getattr(self, '_serialize_%s' % dynamodb_type.lower())
         return {dynamodb_type: serializer(value)}
 
-    def _get_dynamodb_type(self, value):
+    def _get_dynamodb_type(self, value: Any) -> str:
         dynamodb_type = None
 
         if self._is_null(value):
@@ -142,98 +139,96 @@ class TypeSerializer(object):
 
         return dynamodb_type
 
-    def _is_null(self, value):
+    def _is_null(self, value: Any) -> bool:
         if value is None:
             return True
         return False
 
-    def _is_boolean(self, value):
+    def _is_boolean(self, value: Any) -> bool:
         if isinstance(value, bool):
             return True
         return False
 
-    def _is_number(self, value):
-        if isinstance(value, (six.integer_types, Decimal)):
+    def _is_number(self, value: Any) -> bool:
+        if isinstance(value, (int, Decimal)):
             return True
         elif isinstance(value, float):
             raise TypeError(
                 'Float types are not supported. Use Decimal types instead.')
         return False
 
-    def _is_string(self, value):
-        if isinstance(value, six.string_types):
+    def _is_string(self, value: Any) -> bool:
+        if isinstance(value, str):
             return True
         return False
 
-    def _is_binary(self, value):
+    def _is_binary(self, value: Any) -> bool:
         if isinstance(value, Binary):
             return True
-        elif isinstance(value, bytearray):
-            return True
-        elif six.PY3 and isinstance(value, six.binary_type):
+        elif isinstance(value, (bytearray, bytes)):
             return True
         return False
 
-    def _is_set(self, value):
-        if isinstance(value, collections_abc.Set):
+    def _is_set(self, value: Any) -> bool:
+        if isinstance(value, set):
             return True
         return False
 
-    def _is_type_set(self, value, type_validator):
+    def _is_type_set(self, value: Any, type_validator: Callable[[Any], bool]) -> bool:
         if self._is_set(value):
             if False not in map(type_validator, value):
                 return True
         return False
 
-    def _is_map(self, value):
-        if isinstance(value, collections_abc.Mapping):
+    def _is_map(self, value: Any) -> bool:
+        if isinstance(value, dict):
             return True
         return False
 
-    def _is_list(self, value):
+    def _is_list(self, value: Any) -> bool:
         if isinstance(value, list):
             return True
         return False
 
-    def _serialize_null(self, value):
+    def _serialize_null(self, value: None) -> bool:
         return True
 
-    def _serialize_bool(self, value):
+    def _serialize_bool(self, value: bool) -> bool:
         return value
 
-    def _serialize_n(self, value):
+    def _serialize_n(self, value: Decimal) -> str:
         number = str(DYNAMODB_CONTEXT.create_decimal(value))
         if number in ['Infinity', 'NaN']:
             raise TypeError('Infinity and NaN not supported')
         return number
 
-    def _serialize_s(self, value):
+    def _serialize_s(self, value: str) -> str:
         return value
 
-    def _serialize_b(self, value):
+    def _serialize_b(self, value: bytes) -> bytes:
         if isinstance(value, Binary):
             value = value.value
         return value
 
-    def _serialize_ss(self, value):
+    def _serialize_ss(self, value: Iterable[str]) -> List[str]:
         return [self._serialize_s(s) for s in value]
 
-    def _serialize_ns(self, value):
+    def _serialize_ns(self, value: Iterable[Decimal]) -> List[str]:
         return [self._serialize_n(n) for n in value]
 
-    def _serialize_bs(self, value):
+    def _serialize_bs(self, value: Iterable[bytes]) -> List[bytes]:
         return [self._serialize_b(b) for b in value]
 
-    def _serialize_l(self, value):
+    def _serialize_l(self, value: List[Any]) -> List[Any]:
         return [self.serialize(v) for v in value]
 
-    def _serialize_m(self, value):
+    def _serialize_m(self, value: Dict[str, Any]) -> Dict[str, Any]:
         return dict([(k, self.serialize(v)) for k, v in value.items()])
 
 
 class TypeDeserializer(object):
     """This class deserializes DynamoDB types to Python types."""
-    def deserialize(self, value):
+    def deserialize(self, value: Dict[str, Any]) -> Any:
         """The method to deserialize the DynamoDB data types.
 
         :param value: A DynamoDB value to be deserialized to a pythonic value.
@@ -267,32 +262,32 @@ class TypeDeserializer(object):
                 'Dynamodb type %s is not supported' % dynamodb_type)
         return deserializer(value[dynamodb_type])
 
-    def _deserialize_null(self, value):
+    def _deserialize_null(self, value: bool) -> None:
         return None
 
-    def _deserialize_bool(self, value):
+    def _deserialize_bool(self, value: bool) -> bool:
         return value
 
-    def _deserialize_n(self, value):
+    def _deserialize_n(self, value: str) -> Decimal:
         return DYNAMODB_CONTEXT.create_decimal(value)
 
-    def _deserialize_s(self, value):
+    def _deserialize_s(self, value: str) -> str:
         return value
 
-    def _deserialize_b(self, value):
+    def _deserialize_b(self, value: bytes) -> Binary:
         return Binary(value)
 
-    def _deserialize_ns(self, value):
+    def _deserialize_ns(self, value: Iterable[str]) -> Set[Decimal]:
         return set(map(self._deserialize_n, value))
 
-    def _deserialize_ss(self, value):
+    def _deserialize_ss(self, value: Iterable[str]) -> Set[str]:
         return set(map(self._deserialize_s, value))
 
-    def _deserialize_bs(self, value):
+    def _deserialize_bs(self, value: Iterable[bytes]) -> Set[Binary]:
         return set(map(self._deserialize_b, value))
 
-    def _deserialize_l(self, value):
+    def _deserialize_l(self, value: Iterable[Any]) -> List[Any]:
         return [self.deserialize(v) for v in value]
 
-    def _deserialize_m(self, value):
+    def _deserialize_m(self, value: Dict[str, Any]) -> Dict[str, Any]:
         return dict([(k, self.deserialize(v)) for k, v in value.items()])

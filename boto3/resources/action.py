@@ -65,11 +65,14 @@ class ServiceAction(object):
 
         # In the simplest case we just return the response, but if a
         # resource is defined, then we must create these before returning.
-        resource_response_model = action_model.resource
+        resource_response_model = action_model.resource if action_model.has_resource() else None
         if resource_response_model and action_model.request:
+            assert factory
+            assert service_context
             self._response_handler = ResourceHandler(
                 search_path=resource_response_model.path,
-                factory=factory, resource_model=resource_response_model,
+                factory=factory,
+                resource_model=resource_response_model,
                 service_context=service_context,
                 operation_name=action_model.request.operation
             )

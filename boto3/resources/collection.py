@@ -39,7 +39,7 @@ ResourceCollectionType = TypeVar("ResourceCollectionType", bound="ResourceCollec
 ServiceResourceType = TypeVar("ServiceResourceType", bound="ServiceResource")
 
 
-class ResourceCollection(object):
+class ResourceCollection:
     """
     Represents a collection of resources, which can be iterated through,
     optionally with filtering. Collections automatically handle pagination

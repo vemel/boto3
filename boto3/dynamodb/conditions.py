@@ -12,6 +12,7 @@
 # language governing permissions and limitations under the License.
 from collections import namedtuple
 import re
+from typing import Any, Dict
 
 from boto3.exceptions import DynamoDBOperationNotSupportedError
 from boto3.exceptions import DynamoDBNeedsConditionError
@@ -27,23 +28,23 @@ class ConditionBase(object):
     expression_operator = ''
     has_grouped_values = False
 
-    def __init__(self, *values):
+    def __init__(self, *values: Any) -> None:
         self._values = values
 
-    def __and__(self, other):
+    def __and__(self, other: Any) -> "ConditionBase":
         if not isinstance(other, ConditionBase):
             raise DynamoDBOperationNotSupportedError('AND', other)
         return And(self, other)
 
-    def __or__(self, other):
+    def __or__(self, other: Any) -> "ConditionBase":
         if not isinstance(other, ConditionBase):
             raise DynamoDBOperationNotSupportedError('OR', other)
         return Or(self, other)
 
-    def __invert__(self):
+    def __invert__(self) -> "ConditionBase":
         return Not(self)
 
-    def get_expression(self):
+    def get_expression(self) -> Dict[str, Any]:
         return {'format': self.expression_format,
                 'operator': self.expression_operator,
                 'values': self._values}

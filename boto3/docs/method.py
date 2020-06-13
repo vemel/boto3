@@ -53,7 +53,7 @@ def document_model_driven_resource_method(
 
     # If this action returns a resource modify the return example to
     # appropriately reflect that.
-    if resource_action_model.resource:
+    if resource_action_model.has_resource():
         if 'return' in section.available_sections:
             section.delete_section('return')
         resource_type = resource_action_model.resource.type
