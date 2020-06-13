@@ -11,6 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+from typing import Optional, TYPE_CHECKING
 
 import boto3
 from botocore.exceptions import DataNotFoundError
@@ -18,16 +19,22 @@ from botocore.docs.service import ServiceDocumenter as BaseServiceDocumenter
 from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 from boto3.utils import ServiceContext
+from boto3.resources.base import ServiceResource
 from boto3.docs.client import Boto3ClientDocumenter
 from boto3.docs.resource import ResourceDocumenter
 from boto3.docs.resource import ServiceResourceDocumenter
+
+if TYPE_CHECKING:
+    from boto3.session import Session
+else:
+    Session = object
 
 
 class ServiceDocumenter(BaseServiceDocumenter):
     # The path used to find examples
     EXAMPLE_PATH = os.path.join(os.path.dirname(boto3.__file__), 'examples')
 
-    def __init__(self, service_name, session):
+    def __init__(self, service_name: str, session: Session) -> None:
         super(ServiceDocumenter, self).__init__(
             service_name=service_name,
             # I know that this is an internal attribute, but the botocore session
@@ -36,7 +43,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
         )
         self._boto3_session = session
         self._client = self._boto3_session.client(service_name)
-        self._service_resource = None
+        self._service_resource: Optional[ServiceResource] = None
         if self._service_name in self._boto3_session.get_available_resources():
             self._service_resource = self._boto3_session.resource(service_name)
         self.sections = [
@@ -50,7 +57,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
             'examples'
         ]
 
-    def document_service(self):
+    def document_service(self) -> DocumentStructure:
         """Documents an entire service.
 
         :returns: The reStructured text of the documented service.
@@ -71,7 +78,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
         self._document_examples(doc_structure.get_section('examples'))
         return doc_structure.flush_structure()
 
-    def client_api(self, section):
+    def client_api(self, section: DocumentStructure) -> None:
         examples = None
         try:
             examples = self.get_examples(self._service_name)
@@ -80,16 +87,17 @@ class ServiceDocumenter(BaseServiceDocumenter):
 
         Boto3ClientDocumenter(self._client, examples).document_client(section)
 
-    def _document_service_resource(self, section):
+    def _document_service_resource(self, section: DocumentStructure) -> None:
         ServiceResourceDocumenter(
             self._service_resource, self._session).document_resource(
                 section)
 
-    def _document_resources(self, section):
+    def _document_resources(self, section: DocumentStructure) -> None:
         temp_identifier_value = 'foo'
         loader = self._session.get_component('data_loader')
         json_resource_model = loader.load_service_model(
             self._service_name, 'resources-1')
+        assert self._service_resource
         service_model = self._service_resource.meta.client.meta.service_model
         for resource_name in json_resource_model['resources']:
             resource_model = json_resource_model['resources'][resource_name]
@@ -114,12 +122,12 @@ class ServiceDocumenter(BaseServiceDocumenter):
                 resource, self._session).document_resource(
                     section.add_new_section(resource.meta.resource_model.name))
 
-    def _get_example_file(self):
+    def _get_example_file(self) -> str:
         return os.path.realpath(
             os.path.join(self.EXAMPLE_PATH,
                          self._service_name + '.rst'))
 
-    def _document_examples(self, section):
+    def _document_examples(self, section: DocumentStructure) -> None:
         examples_file = self._get_example_file()
         if os.path.isfile(examples_file):
             section.style.h2('Examples')

@@ -13,17 +13,30 @@
 
 import copy
 import logging
+from typing import Any, Generic, Iterator, List, TypeVar, Dict, Type, Callable, TYPE_CHECKING
 
 from botocore import xform_name
 from botocore.utils import merge_dicts
+from botocore.hooks import HierarchicalEmitter
 
-from .action import BatchAction
-from .params import create_request_parameters
-from .response import ResourceHandler
-from ..docs import docstring
+from boto3.docs import docstring
+from boto3.resources.action import BatchAction, Action
+from boto3.resources.params import create_request_parameters
+from boto3.resources.base import ServiceResource
+from boto3.resources.model import Collection
+from boto3.resources.response import ResourceHandler
+from boto3.utils import ServiceContext
+
+if TYPE_CHECKING:
+    from boto3.resources.factory import ResourceFactory
+else:
+    ResourceFactory = object
 
 
 logger = logging.getLogger(__name__)
+
+ResourceCollectionType = TypeVar("ResourceCollectionType", bound="ResourceCollection")
+ServiceResourceType = TypeVar("ServiceResourceType", bound="ServiceResource")
 
 
 class ResourceCollection(object):
@@ -43,7 +56,7 @@ class ResourceCollection(object):
     :param handler: The resource response handler used to create resource
                     instances
     """
-    def __init__(self, model, parent, handler, **kwargs):
+    def __init__(self, model: Collection, parent: ServiceResource, handler: ResourceHandler, **kwargs: Any) -> None:
         self._model = model
         self._parent = parent
         self._py_operation_name = xform_name(
@@ -51,7 +64,7 @@ class ResourceCollection(object):
         self._handler = handler
         self._params = copy.deepcopy(kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{0}({1}, {2})'.format(
             self.__class__.__name__,
             self._parent,
@@ -61,7 +74,7 @@ class ResourceCollection(object):
             )
         )
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """
         A generator which yields resource instances after doing the
         appropriate service operation calls and handling any pagination
@@ -90,7 +103,7 @@ class ResourceCollection(object):
                 if limit is not None and count >= limit:
                     return
 
-    def _clone(self, **kwargs):
+    def _clone(self: ResourceCollectionType, **kwargs: Any) -> ResourceCollectionType:
         """
         Create a clone of this collection. This is used by the methods
         below to provide a chainable interface that returns copies
@@ -113,7 +126,7 @@ class ResourceCollection(object):
                                self._handler, **params)
         return clone
 
-    def pages(self):
+    def pages(self) -> Iterator[List["ServiceResource"]]:
         """
         A generator which yields pages of resource instances after
         doing the appropriate service operation calls and handling
@@ -180,7 +193,7 @@ class ResourceCollection(object):
             if limit is not None and count >= limit:
                 break
 
-    def all(self):
+    def all(self: ResourceCollectionType) -> ResourceCollectionType:
         """
         Get all items from the collection, optionally with a custom
         page size and item count limit.
@@ -201,7 +214,7 @@ class ResourceCollection(object):
         """
         return self._clone()
 
-    def filter(self, **kwargs):
+    def filter(self: ResourceCollectionType, **kwargs: Any) -> ResourceCollectionType:
         """
         Get items from the collection, passing keyword arguments along
         as parameters to the underlying service operation, which are
@@ -225,7 +238,7 @@ class ResourceCollection(object):
         """
         return self._clone(**kwargs)
 
-    def limit(self, count):
+    def limit(self: ResourceCollectionType, count: int) -> ResourceCollectionType:
         """
         Return at most this many resources.
 
@@ -243,7 +256,7 @@ class ResourceCollection(object):
         """
         return self._clone(limit=count)
 
-    def page_size(self, count):
+    def page_size(self: ResourceCollectionType, count: int) -> ResourceCollectionType:
         """
         Fetch at most this many resources per service request.
 
@@ -303,7 +316,13 @@ class CollectionManager(object):
     # The class to use when creating an iterator
     _collection_cls = ResourceCollection
 
-    def __init__(self, collection_model, parent, factory, service_context):
+    def __init__(
+        self,
+        collection_model: Collection,
+        parent: ServiceResource,
+        factory: ResourceFactory,
+        service_context: ServiceContext,
+    ) -> None:
         self._model = collection_model
         operation_name = self._model.request.operation
         self._parent = parent
@@ -316,7 +335,7 @@ class CollectionManager(object):
             operation_name=operation_name
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{0}({1}, {2})'.format(
             self.__class__.__name__,
             self._parent,
@@ -326,7 +345,7 @@ class CollectionManager(object):
             )
         )
 
-    def iterator(self, **kwargs):
+    def iterator(self, **kwargs: Any) -> ResourceCollection:
         """
         Get a resource collection iterator from this manager.
 
@@ -337,23 +356,23 @@ class CollectionManager(object):
                                     self._handler, **kwargs)
 
     # Set up some methods to proxy ResourceCollection methods
-    def all(self):
+    def all(self) -> ResourceCollection:
         return self.iterator()
     all.__doc__ = ResourceCollection.all.__doc__
 
-    def filter(self, **kwargs):
+    def filter(self, **kwargs: Any) -> ResourceCollection:
         return self.iterator(**kwargs)
     filter.__doc__ = ResourceCollection.filter.__doc__
 
-    def limit(self, count):
+    def limit(self, count: int) -> ResourceCollection:
         return self.iterator(limit=count)
     limit.__doc__ = ResourceCollection.limit.__doc__
 
-    def page_size(self, count):
+    def page_size(self, count: int) -> ResourceCollection:
         return self.iterator(page_size=count)
     page_size.__doc__ = ResourceCollection.page_size.__doc__
 
-    def pages(self):
+    def pages(self) -> Iterator[List[ServiceResource]]:
         return self.iterator().pages()
     pages.__doc__ = ResourceCollection.pages.__doc__
 
@@ -365,8 +384,13 @@ class CollectionFactory(object):
     subclasses from a :py:class:`~boto3.resources.model.Collection`
     model. These subclasses include methods to perform batch operations.
     """
-    def load_from_definition(self, resource_name, collection_model,
-                             service_context, event_emitter):
+    def load_from_definition(
+        self,
+        resource_name: str,
+        collection_model: Collection,
+        service_context: ServiceContext,
+        event_emitter: HierarchicalEmitter
+    ) -> Type[CollectionManager]:
         """
         Loads a collection from a model, creating a new
         :py:class:`CollectionManager` subclass
@@ -388,7 +412,7 @@ class CollectionFactory(object):
         :rtype: Subclass of :py:class:`CollectionManager`
         :return: The collection class.
         """
-        attrs = {}
+        attrs: Dict[str, Any] = {}
         collection_name = collection_model.name
 
         # Create the batch actions for a collection
@@ -425,8 +449,14 @@ class CollectionFactory(object):
 
         return type(str(cls_name), (CollectionManager,), attrs)
 
-    def _load_batch_actions(self, attrs, resource_name, collection_model,
-                            service_model, event_emitter):
+    def _load_batch_actions(
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        collection_model: Collection,
+        service_model: ServiceResource,
+        event_emitter: HierarchicalEmitter,
+    ) -> None:
         """
         Batch actions on the collection become methods on both
         the collection manager and iterators.
@@ -438,8 +468,14 @@ class CollectionFactory(object):
                 service_model, event_emitter)
 
     def _load_documented_collection_methods(
-            factory_self, attrs, resource_name, collection_model,
-            service_model, event_emitter, base_class):
+        factory_self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        collection_model: Collection,
+        service_model: ServiceResource,
+        event_emitter: HierarchicalEmitter,
+        base_class: Any,
+    ) -> None:
         # The base class already has these methods defined. However
         # the docstrings are generic and not based for a particular service
         # or resource. So we override these methods by proxying to the
@@ -447,7 +483,7 @@ class CollectionFactory(object):
         # that pertains to the resource.
 
         # A collection's all() method.
-        def all(self):
+        def all(self: ResourceCollection) -> ResourceCollection:
             return base_class.all(self)
 
         all.__doc__ = docstring.CollectionMethodDocstring(
@@ -461,7 +497,7 @@ class CollectionFactory(object):
         attrs['all'] = all
 
         # The collection's filter() method.
-        def filter(self, **kwargs):
+        def filter(self: ResourceCollection, **kwargs: Any) -> ResourceCollection:
             return base_class.filter(self, **kwargs)
 
         filter.__doc__ = docstring.CollectionMethodDocstring(
@@ -475,7 +511,7 @@ class CollectionFactory(object):
         attrs['filter'] = filter
 
         # The collection's limit method.
-        def limit(self, count):
+        def limit(self: ResourceCollection, count: int) -> ResourceCollection:
             return base_class.limit(self, count)
 
         limit.__doc__ = docstring.CollectionMethodDocstring(
@@ -489,7 +525,7 @@ class CollectionFactory(object):
         attrs['limit'] = limit
 
         # The collection's page_size method.
-        def page_size(self, count):
+        def page_size(self: Collection, count: int) -> ResourceCollection:
             return base_class.page_size(self, count)
 
         page_size.__doc__ = docstring.CollectionMethodDocstring(
@@ -502,16 +538,22 @@ class CollectionFactory(object):
         )
         attrs['page_size'] = page_size
 
-    def _create_batch_action(factory_self, resource_name, snake_cased,
-                             action_model, collection_model, service_model,
-                             event_emitter):
+    def _create_batch_action(
+        factory_self,
+        resource_name: str,
+        snake_cased: str,
+        action_model: Action,
+        collection_model: Collection,
+        service_model: ServiceResource,
+        event_emitter: HierarchicalEmitter,
+    ) -> Callable[..., List[Dict[str, Any]]]:
         """
         Creates a new method which makes a batch operation request
         to the underlying service API.
         """
         action = BatchAction(action_model)
 
-        def batch_action(self, *args, **kwargs):
+        def batch_action(self: Any, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
             return action(self, *args, **kwargs)
 
         batch_action.__name__ = str(snake_cased)

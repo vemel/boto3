@@ -22,29 +22,31 @@ of this are:
 These models are used both by the resource factory to generate resource
 classes as well as by the documentation generator.
 """
+from typing import List, Optional, Dict, Any, Tuple, Set
 
 import logging
 
 from botocore import xform_name
+from botocore.model import Shape
 
 
 logger = logging.getLogger(__name__)
 
 
-class Identifier(object):
+class Identifier:
     """
     A resource identifier, given by its name.
 
     :type name: string
     :param name: The name of the identifier
     """
-    def __init__(self, name, member_name=None):
+    def __init__(self, name: str, member_name: Optional[str] = None) -> None:
         #: (``string``) The name of the identifier
         self.name = name
         self.member_name = member_name
 
 
-class Action(object):
+class Action:
     """
     A service operation action.
 
@@ -55,7 +57,7 @@ class Action(object):
     :type resource_defs: dict
     :param resource_defs: All resources defined in the service
     """
-    def __init__(self, name, definition, resource_defs):
+    def __init__(self, name: str, definition: Dict[str, Any], resource_defs: Dict[str, Any]) -> None:
         self._definition = definition
 
         #: (``string``) The name of the action
@@ -73,7 +75,7 @@ class Action(object):
         self.path = definition.get('path')
 
 
-class DefinitionWithParams(object):
+class DefinitionWithParams:
     """
     An item which has parameters exposed via the ``params`` property.
     A request has an operation and parameters, while a waiter has
@@ -82,11 +84,11 @@ class DefinitionWithParams(object):
     :type definition: dict
     :param definition: The JSON definition
     """
-    def __init__(self, definition):
+    def __init__(self, definition: Dict[str, Any]) -> None:
         self._definition = definition
 
     @property
-    def params(self):
+    def params(self) -> List["Parameter"]:
         """
         Get a list of auto-filled parameters for this request.
 
@@ -100,7 +102,7 @@ class DefinitionWithParams(object):
         return params
 
 
-class Parameter(object):
+class Parameter:
     """
     An auto-filled parameter which has a source and target. For example,
     the ``QueueUrl`` may be auto-filled from a resource's ``url`` identifier
@@ -113,8 +115,15 @@ class Parameter(object):
     :type source: string
     :param source: The source name, e.g. ``Url``
     """
-    def __init__(self, target, source, name=None, path=None, value=None,
-                 **kwargs):
+    def __init__(
+        self,
+        target: str,
+        source: str,
+        name: Optional[str] = None,
+        path: Optional[str] = None,
+        value: Any = None,
+        **kwargs: Any,
+    ) -> None:
         #: (``string``) The destination parameter name
         self.target = target
         #: (``string``) Where the source is defined
@@ -138,7 +147,7 @@ class Request(DefinitionWithParams):
     :type definition: dict
     :param definition: The JSON definition
     """
-    def __init__(self, definition):
+    def __init__(self, definition: Dict[str, Any]) -> None:
         super(Request, self).__init__(definition)
 
         #: (``string``) The name of the low-level service operation
@@ -156,7 +165,7 @@ class Waiter(DefinitionWithParams):
     """
     PREFIX = 'WaitUntil'
 
-    def __init__(self, name, definition):
+    def __init__(self, name: str, definition: Dict[str, Any]) -> None:
         super(Waiter, self).__init__(definition)
 
         #: (``string``) The name of this waiter
@@ -166,7 +175,7 @@ class Waiter(DefinitionWithParams):
         self.waiter_name = definition.get('waiterName')
 
 
-class ResponseResource(object):
+class ResponseResource:
     """
     A resource response to create after performing an action.
 
@@ -175,18 +184,18 @@ class ResponseResource(object):
     :type resource_defs: dict
     :param resource_defs: All resources defined in the service
     """
-    def __init__(self, definition, resource_defs):
+    def __init__(self, definition: Dict[str, Any], resource_defs: Dict[str, Any]) -> None:
         self._definition = definition
         self._resource_defs = resource_defs
 
         #: (``string``) The name of the response resource type
-        self.type = definition.get('type')
+        self.type: str = definition.get('type', "")
 
         #: (``string``) The JMESPath search query or ``None``
-        self.path = definition.get('path')
+        self.path: str = definition.get('path', "")
 
     @property
-    def identifiers(self):
+    def identifiers(self) -> List[Parameter]:
         """
         A list of resource identifiers.
 
@@ -201,7 +210,7 @@ class ResponseResource(object):
         return identifiers
 
     @property
-    def model(self):
+    def model(self) -> "ResourceModel":
         """
         Get the resource model for the response resource.
 
@@ -223,7 +232,7 @@ class Collection(Action):
     :param resource_defs: All resources defined in the service
     """
     @property
-    def batch_actions(self):
+    def batch_actions(self) -> List[Action]:
         """
         Get a list of batch actions supported by the resource type
         contained in this action. This is a shortcut for accessing
@@ -231,10 +240,11 @@ class Collection(Action):
 
         :rtype: list(:py:class:`Action`)
         """
+        assert self.resource
         return self.resource.model.batch_actions
 
 
-class ResourceModel(object):
+class ResourceModel:
     """
     A model representing a resource, defined via a JSON description
     format. A resource has identifiers, attributes, actions,
@@ -248,17 +258,17 @@ class ResourceModel(object):
     :type resource_defs: dict
     :param resource_defs: All resources defined in the service
     """
-    def __init__(self, name, definition, resource_defs):
+    def __init__(self, name: str, definition: Dict[str, Any], resource_defs: Dict[str, Any]) -> None:
         self._definition = definition
         self._resource_defs = resource_defs
-        self._renamed = {}
+        self._renamed: Dict[Tuple[str, str], Any] = {}
 
         #: (``string``) The name of this resource
         self.name = name
         #: (``string``) The service shape name for this resource or ``None``
         self.shape = definition.get('shape')
 
-    def load_rename_map(self, shape=None):
+    def load_rename_map(self, shape: Optional[Shape] = None) -> None:
         """
         Load a name translation map given a shape. This will set
         up renamed values for any collisions, e.g. if the shape,
@@ -334,8 +344,8 @@ class ResourceModel(object):
             for name in shape.members.keys():
                 self._load_name_with_category(names, name, 'attribute')
 
-    def _load_name_with_category(self, names, name, category,
-                                 snake_case=True):
+    def _load_name_with_category(self, names: Set[str], name: str, category: str,
+                                 snake_case: bool = True) -> None:
         """
         Load a name with a given category, possibly renaming it
         if that name is already in use. The name will be stored
@@ -367,7 +377,7 @@ class ResourceModel(object):
 
         names.add(name)
 
-    def _get_name(self, category, name, snake_case=True):
+    def _get_name(self, category: str, name: str, snake_case: bool = True) -> str:
         """
         Get a possibly renamed value given a category and name. This
         uses the rename map set up in ``load_rename_map``, so that
@@ -388,7 +398,7 @@ class ResourceModel(object):
 
         return self._renamed.get((category, name), name)
 
-    def get_attributes(self, shape):
+    def get_attributes(self, shape: Shape) -> Dict[str, Any]:
         """
         Get a dictionary of attribute names to original name and shape
         models that represent the attributes of this resource. Looks
@@ -418,7 +428,7 @@ class ResourceModel(object):
         return attributes
 
     @property
-    def identifiers(self):
+    def identifiers(self) -> List[Identifier]:
         """
         Get a list of resource identifiers.
 
@@ -436,7 +446,7 @@ class ResourceModel(object):
         return identifiers
 
     @property
-    def load(self):
+    def load(self) -> Action:
         """
         Get the load action for this resource, if it is defined.
 
@@ -450,7 +460,7 @@ class ResourceModel(object):
         return action
 
     @property
-    def actions(self):
+    def actions(self) -> List[Action]:
         """
         Get a list of actions for this resource.
 
@@ -465,7 +475,7 @@ class ResourceModel(object):
         return actions
 
     @property
-    def batch_actions(self):
+    def batch_actions(self) -> List[Action]:
         """
         Get a list of batch actions for this resource.
 
@@ -479,7 +489,7 @@ class ResourceModel(object):
 
         return actions
 
-    def _get_has_definition(self):
+    def _get_has_definition(self) -> Dict[str, Any]:
         """
         Get a ``has`` relationship definition from a model, where the
         service resource model is treated special in that it contains
@@ -524,17 +534,18 @@ class ResourceModel(object):
                     #   }
                     # }
                     #
+
+                    identifiers: List[Dict[str, str]] = []
+                    for identifier in resource_def.get('identifiers', []):
+                        identifiers.append({
+                            'target': identifier['name'], 'source': 'input'
+                        })
                     fake_has = {
                         'resource': {
                             'type': name,
-                            'identifiers': []
+                            'identifiers': identifiers
                         }
                     }
-
-                    for identifier in resource_def.get('identifiers', []):
-                        fake_has['resource']['identifiers'].append({
-                            'target': identifier['name'], 'source': 'input'
-                        })
 
                     definition[name] = fake_has
         else:
@@ -542,7 +553,7 @@ class ResourceModel(object):
 
         return definition
 
-    def _get_related_resources(self, subresources):
+    def _get_related_resources(self, subresources: bool) -> List[Action]:
         """
         Get a list of sub-resources or references.
 
@@ -551,7 +562,7 @@ class ResourceModel(object):
                              get references.
         :rtype: list(:py:class:`ResponseResource`)
         """
-        resources = []
+        resources: List[Action] = []
 
         for name, definition in self._get_has_definition().items():
             if subresources:
@@ -561,10 +572,11 @@ class ResourceModel(object):
             action = Action(name, definition, self._resource_defs)
 
             data_required = False
-            for identifier in action.resource.identifiers:
-                if identifier.source == 'data':
-                    data_required = True
-                    break
+            if action.resource:
+                for identifier in action.resource.identifiers:
+                    if identifier.source == 'data':
+                        data_required = True
+                        break
 
             if subresources and not data_required:
                 resources.append(action)
@@ -574,7 +586,7 @@ class ResourceModel(object):
         return resources
 
     @property
-    def subresources(self):
+    def subresources(self) -> List[Action]:
         """
         Get a list of sub-resources.
 
@@ -583,7 +595,7 @@ class ResourceModel(object):
         return self._get_related_resources(True)
 
     @property
-    def references(self):
+    def references(self)-> List[Action]:
         """
         Get a list of reference resources.
 
@@ -592,7 +604,7 @@ class ResourceModel(object):
         return self._get_related_resources(False)
 
     @property
-    def collections(self):
+    def collections(self) -> List[Collection]:
         """
         Get a list of collections for this resource.
 
@@ -607,7 +619,7 @@ class ResourceModel(object):
         return collections
 
     @property
-    def waiters(self):
+    def waiters(self) -> List[Waiter]:
         """
         Get a list of waiters for this resource.
 

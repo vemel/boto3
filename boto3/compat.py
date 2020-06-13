@@ -33,7 +33,7 @@ else:
 
 
 if sys.platform.startswith('win'):
-    def rename_file(current_filename, new_filename):
+    def rename_file(current_filename: str, new_filename: str) -> None:
         try:
             os.remove(new_filename)
         except OSError as e:

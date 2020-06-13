@@ -20,9 +20,10 @@ requires = [
 ]
 
 
-def get_version():
+def get_version() -> str:
     init = open(os.path.join(ROOT, 'boto3', '__init__.py')).read()
-    return VERSION_RE.search(init).group(1)
+    match = VERSION_RE.search(init)
+    return match.group(1) if match else "0.0.0"
 
 
 setup(

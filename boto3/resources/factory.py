@@ -13,21 +13,25 @@
 
 import logging
 from functools import partial
+from typing import Dict, Any, cast, Type
 
-from .action import ServiceAction
-from .action import WaiterAction
-from .base import ResourceMeta, ServiceResource
-from .collection import CollectionFactory
-from .model import ResourceModel
-from .response import build_identifiers, ResourceHandler
-from ..exceptions import ResourceLoadException
-from ..docs import docstring
+from botocore.hooks import BaseEventHooks
+
+from boto3.resources.action import ServiceAction
+from boto3.resources.action import WaiterAction
+from boto3.resources.base import ResourceMeta, ServiceResource
+from boto3.resources.collection import CollectionFactory
+from boto3.resources.model import ResourceModel
+from boto3.resources.response import build_identifiers, ResourceHandler
+from boto3.exceptions import ResourceLoadException
+from boto3.docs import docstring
+from boto3.utils import ServiceContext
 
 
 logger = logging.getLogger(__name__)
 
 
-class ResourceFactory(object):
+class ResourceFactory:
     """
     A factory to create new :py:class:`~boto3.resources.base.ServiceResource`
     classes from a :py:class:`~boto3.resources.model.ResourceModel`. There are
@@ -35,12 +39,16 @@ class ResourceFactory(object):
     SQS resource) and another on models contained within the service (e.g. an
     SQS Queue resource).
     """
-    def __init__(self, emitter):
+    def __init__(self, emitter: BaseEventHooks) -> None:
         self._collection_factory = CollectionFactory()
         self._emitter = emitter
 
-    def load_from_definition(self, resource_name,
-                             single_resource_json_definition, service_context):
+    def load_from_definition(
+        self,
+        resource_name: str,
+        single_resource_json_definition: Dict[str, Any],
+        service_context: ServiceContext,
+    ) -> Type[ServiceResource]:
         """
         Loads a resource from a model, creating a new
         :py:class:`~boto3.resources.base.ServiceResource` subclass
@@ -138,7 +146,7 @@ class ResourceFactory(object):
                 service_context=service_context)
         return type(str(cls_name), tuple(base_classes), attrs)
 
-    def _load_identifiers(self, attrs, meta, resource_model, resource_name):
+    def _load_identifiers(self, attrs: Dict[str, Any], meta: ResourceMeta, resource_model: ResourceModel, resource_name: str) -> None:
         """
         Populate required identifiers. These are arguments without which
         the resource cannot be used. Identifiers become arguments for
@@ -149,8 +157,8 @@ class ResourceFactory(object):
             attrs[identifier.name] = self._create_identifier(
                 identifier, resource_name)
 
-    def _load_actions(self, attrs, resource_name, resource_model,
-                      service_context):
+    def _load_actions(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
+                      service_context: ServiceContext) -> None:
         """
         Actions on the resource become methods, with the ``load`` method
         being a special case which sets internal data for attributes, and
@@ -167,8 +175,8 @@ class ResourceFactory(object):
                 action_model=action, resource_name=resource_name,
                 service_context=service_context)
 
-    def _load_attributes(self, attrs, meta, resource_name, resource_model,
-                         service_context):
+    def _load_attributes(self, attrs: Dict[str, Any], meta: ResourceMeta, resource_name: str, resource_model: ResourceModel,
+                         service_context: ServiceContext) -> None:
         """
         Load resource attributes based on the resource shape. The shape
         name is referenced in the resource JSON, but the shape itself
@@ -501,7 +509,7 @@ class ResourceFactory(object):
         if is_load:
             # We need a new method here because we want access to the
             # instance via ``self``.
-            def do_action(self, *args, **kwargs):
+            def do_action(self: ServiceResource, *args: Any, **kwargs: Any) -> Any:
                 response = action(self, *args, **kwargs)
                 self.meta.data = response
             # Create the docstring for the load/reload mehtods.
@@ -516,7 +524,7 @@ class ResourceFactory(object):
         else:
             # We need a new method here because we want access to the
             # instance via ``self``.
-            def do_action(self, *args, **kwargs):
+            def do_action(self: ServiceResource, *args: Any, **kwargs: Any) -> Any:
                 response = action(self, *args, **kwargs)
 
                 if hasattr(self, 'load'):

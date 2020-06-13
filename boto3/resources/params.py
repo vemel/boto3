@@ -12,17 +12,20 @@
 # language governing permissions and limitations under the License.
 
 import re
+from typing import Any, Optional, Dict
 
 import jmespath
 from botocore import xform_name
 
-from ..exceptions import ResourceLoadException
+from boto3.exceptions import ResourceLoadException
+from boto3.resources.base import ServiceResource
+from boto3.resources.model import DefinitionWithParams
 
 
 INDEX_RE = re.compile(r'\[(.*)\]$')
 
 
-def get_data_member(parent, path):
+def get_data_member(parent: ServiceResource, path: str) -> Any:
     """
     Get a data member from a parent using a JMESPath search query,
     loading the parent if required. If the parent cannot be loaded
@@ -48,7 +51,12 @@ def get_data_member(parent, path):
     return jmespath.search(path, parent.meta.data)
 
 
-def create_request_parameters(parent, request_model, params=None, index=None):
+def create_request_parameters(
+    parent: ServiceResource,
+    request_model: DefinitionWithParams,
+    params: Optional[Dict[str, Any]] = None,
+    index: Optional[int] = None,
+) -> Dict[str, Any]:
     """
     Handle request parameters that can be filled in from identifiers,
     resource data members or constants.
@@ -82,7 +90,7 @@ def create_request_parameters(parent, request_model, params=None, index=None):
         elif source == 'data':
             # If this is a data member then it may incur a load
             # action before returning the value.
-            value = get_data_member(parent, param.path)
+            value = get_data_member(parent, param.path or "<empty>")
         elif source in ['string', 'integer', 'boolean']:
             # These are hard-coded values in the definition
             value = param.value
@@ -98,7 +106,7 @@ def create_request_parameters(parent, request_model, params=None, index=None):
     return params
 
 
-def build_param_structure(params, target, value, index=None):
+def build_param_structure(params: Dict[str, Any], target: str, value: Any, index: Optional[int]=None) -> Any:
     """
     This method provides a basic reverse JMESPath implementation that
     lets you go from a JMESPath-like string to a possibly deeply nested

@@ -12,16 +12,14 @@
 # language governing permissions and limitations under the License.
 import sys
 from collections import namedtuple
+from typing import Any, Callable, Dict
+
+from botocore.session import Session as BotocoreSession
+from botocore.waiter import Waiter, WaiterModel
+from botocore.model import ServiceModel
 
 
-_ServiceContext = namedtuple(
-    'ServiceContext',
-    ['service_name', 'service_model', 'service_waiter_model',
-     'resource_json_definitions']
-)
-
-
-class ServiceContext(_ServiceContext):
+class ServiceContext:
     """Provides important service-wide, read-only information about a service
 
     :type service_name: str
@@ -40,10 +38,20 @@ class ServiceContext(_ServiceContext):
         shapes for a service. It is equivalient of loading a
         ``resource-1.json`` and retrieving the value at the key "resources".
     """
-    pass
+    def __init__(
+        self,
+        service_name: str,
+        service_model: ServiceModel,
+        service_waiter_model: WaiterModel,
+        resource_json_definitions: Dict[str, Any],
+    ) -> None:
+        self.service_name = service_name
+        self.service_model = service_model
+        self.service_waiter_model = service_waiter_model
+        self.resource_json_definitions = resource_json_definitions
 
 
-def import_module(name):
+def import_module(name: str) -> Any:
     """Import module given a name.
 
     Does not support relative imports.
@@ -53,10 +61,10 @@ def import_module(name):
     return sys.modules[name]
 
 
-def lazy_call(full_name, **kwargs):
+def lazy_call(full_name: str, **kwargs: Any) -> Callable[... , Any]:
     parent_kwargs = kwargs
 
-    def _handler(**kwargs):
+    def _handler(**kwargs: Any) -> Any:
         module, function_name = full_name.rsplit('.', 1)
         module = import_module(module)
         kwargs.update(parent_kwargs)
@@ -65,7 +73,7 @@ def lazy_call(full_name, **kwargs):
     return _handler
 
 
-def inject_attribute(class_attributes, name, value):
+def inject_attribute(class_attributes: Dict[str, Any], name: str, value: Any) -> None:
     if name in class_attributes:
         raise RuntimeError(
             'Cannot inject class attribute "%s", attribute '
@@ -83,11 +91,11 @@ class LazyLoadedWaiterModel(object):
     the waiter-2.json until it is accessed through a ``get_waiter`` call
     when the docstring is generated/accessed.
     """
-    def __init__(self, bc_session, service_name, api_version):
+    def __init__(self, bc_session: BotocoreSession, service_name: str, api_version: str) -> None:
         self._session = bc_session
         self._service_name = service_name
         self._api_version = api_version
 
-    def get_waiter(self, waiter_name):
+    def get_waiter(self, waiter_name: str) -> Waiter:
         return self._session.get_waiter_model(
             self._service_name, self._api_version).get_waiter(waiter_name)

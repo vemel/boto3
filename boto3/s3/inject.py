@@ -10,6 +10,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import Dict, Any
+
 from botocore.exceptions import ClientError
 
 from boto3.s3.transfer import create_transfer_manager
@@ -18,7 +20,7 @@ from boto3.s3.transfer import ProgressCallbackInvoker
 from boto3 import utils
 
 
-def inject_s3_transfer_methods(class_attributes, **kwargs):
+def inject_s3_transfer_methods(class_attributes: Dict[str, Any], **kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, 'upload_file', upload_file)
     utils.inject_attribute(class_attributes, 'download_file', download_file)
     utils.inject_attribute(class_attributes, 'copy', copy)
@@ -27,7 +29,7 @@ def inject_s3_transfer_methods(class_attributes, **kwargs):
         class_attributes, 'download_fileobj', download_fileobj)
 
 
-def inject_bucket_methods(class_attributes, **kwargs):
+def inject_bucket_methods(class_attributes: Dict[str, Any], **kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, 'load', bucket_load)
     utils.inject_attribute(class_attributes, 'upload_file', bucket_upload_file)
     utils.inject_attribute(
@@ -39,7 +41,7 @@ def inject_bucket_methods(class_attributes, **kwargs):
         class_attributes, 'download_fileobj', bucket_download_fileobj)
 
 
-def inject_object_methods(class_attributes, **kwargs):
+def inject_object_methods(class_attributes: Dict[str, Any], **kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, 'upload_file', object_upload_file)
     utils.inject_attribute(
         class_attributes, 'download_file', object_download_file)

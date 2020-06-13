@@ -12,6 +12,8 @@
 # language governing permissions and limitations under the License.
 
 # All exceptions in this class should subclass from Boto3Error.
+from typing import Iterable, Any
+
 import botocore.exceptions
 
 
@@ -37,8 +39,12 @@ class NoVersionFound(Boto3Error):
 # Same thing for ResourceNotExistsError below.
 class UnknownAPIVersionError(Boto3Error,
                              botocore.exceptions.DataNotFoundError):
-    def __init__(self, service_name, bad_api_version,
-                 available_api_versions):
+    def __init__(
+        self,
+        service_name: str,
+        bad_api_version: str,
+        available_api_versions: Iterable[str],
+    ) -> None:
         msg = (
             "The '%s' resource does not an API version of: %s\n"
             "Valid API versions are: %s"
@@ -52,7 +58,7 @@ class UnknownAPIVersionError(Boto3Error,
 class ResourceNotExistsError(Boto3Error,
                              botocore.exceptions.DataNotFoundError):
     """Raised when you attempt to create a resource that does not exist."""
-    def __init__(self, service_name, available_services, has_low_level_client):
+    def __init__(self, service_name: str, available_services: Iterable[str], has_low_level_client: bool) -> None:
         msg = (
             "The '%s' resource does not exist.\n"
             "The available resources are:\n"
@@ -68,7 +74,7 @@ class ResourceNotExistsError(Boto3Error,
 
 
 class RetriesExceededError(Boto3Error):
-    def __init__(self, last_exception, msg='Max Retries Exceeded'):
+    def __init__(self, last_exception: Exception, msg: str = 'Max Retries Exceeded') -> None:
         super(RetriesExceededError, self).__init__(msg)
         self.last_exception = last_exception
 
@@ -83,7 +89,7 @@ class S3UploadFailedError(Boto3Error):
 
 class DynamoDBOperationNotSupportedError(Boto3Error):
     """Raised for operantions that are not supported for an operand"""
-    def __init__(self, operation, value):
+    def __init__(self, operation: str, value: Any) -> None:
         msg = (
             '%s operation cannot be applied to value %s of type %s directly. '
             'Must use AttributeBase object methods (i.e. Attr().eq()). to '
@@ -97,7 +103,7 @@ DynanmoDBOperationNotSupportedError = DynamoDBOperationNotSupportedError
 
 class DynamoDBNeedsConditionError(Boto3Error):
     """Raised when input is not a condition"""
-    def __init__(self, value):
+    def __init__(self, value: Any) -> None:
         msg = (
             'Expecting a ConditionBase object. Got %s of type %s. '
             'Use AttributeBase object methods (i.e. Attr().eq()). to '

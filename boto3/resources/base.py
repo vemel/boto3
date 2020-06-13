@@ -12,8 +12,11 @@
 # language governing permissions and limitations under the License.
 
 import logging
+from typing import Optional, List, Dict, Any
 
 import boto3
+from boto3.resources.model import ResourceModel
+from botocore.client import BaseClient
 
 
 logger = logging.getLogger(__name__)
@@ -23,8 +26,14 @@ class ResourceMeta(object):
     """
     An object containing metadata about a resource.
     """
-    def __init__(self, service_name, identifiers=None, client=None,
-                 data=None, resource_model=None):
+    def __init__(
+        self,
+        service_name: str,
+        identifiers: Optional[List[str]] = None,
+        client: Optional[BaseClient] = None,
+        data: Optional[Dict[str, Any]] = None,
+        resource_model: Optional[ResourceModel] = None
+    ) -> None:
         #: (``string``) The service name, e.g. 's3'
         self.service_name = service_name
 
@@ -41,18 +50,18 @@ class ResourceMeta(object):
         # The resource model for that resource
         self.resource_model = resource_model
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'ResourceMeta(\'{0}\', identifiers={1})'.format(
             self.service_name, self.identifiers)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         # Two metas are equal if their components are all equal
         if other.__class__.__name__ != self.__class__.__name__:
             return False
 
         return self.__dict__ == other.__dict__
 
-    def copy(self):
+    def copy(self) -> "ResourceMeta":
         """
         Create a copy of this metadata object.
         """
@@ -61,7 +70,7 @@ class ResourceMeta(object):
         return ResourceMeta(service_name, **params)
 
 
-class ServiceResource(object):
+class ServiceResource:
     """
     A base class for resources.
 
@@ -69,7 +78,7 @@ class ServiceResource(object):
     :param client: A low-level Botocore client instance
     """
 
-    meta = None
+    meta: ResourceMeta
     """
     Stores metadata about this resource instance, such as the
     ``service_name``, the low-level ``client`` and any cached ``data``
@@ -85,7 +94,7 @@ class ServiceResource(object):
     See :py:class:`ResourceMeta` for more information.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         # Always work on a copy of meta, otherwise we would affect other
         # instances of the same subclass.
         self.meta = self.meta.copy()
@@ -118,7 +127,7 @@ class ServiceResource(object):
                 raise ValueError(
                     'Required parameter {0} not set'.format(identifier))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         identifiers = []
         for identifier in self.meta.identifiers:
             identifiers.append('{0}={1}'.format(
@@ -128,7 +137,7 @@ class ServiceResource(object):
             ', '.join(identifiers),
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         # Should be instances of the same resource class
         if other.__class__.__name__ != self.__class__.__name__:
             return False
@@ -141,7 +150,7 @@ class ServiceResource(object):
 
         return True
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         identifiers = []
         for identifier in self.meta.identifiers:
             identifiers.append(getattr(self, identifier))

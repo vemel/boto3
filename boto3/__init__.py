@@ -12,8 +12,12 @@
 # language governing permissions and limitations under the License.
 
 import logging
+from typing import Any, Optional
 
 from boto3.session import Session
+from boto3.resources.base import ServiceResource
+
+from botocore.client import BaseClient
 
 
 __author__ = 'Amazon Web Services'
@@ -21,10 +25,10 @@ __version__ = '1.14.2'
 
 
 # The default Boto3 session; autoloaded when needed.
-DEFAULT_SESSION = None
+DEFAULT_SESSION: Optional[Session] = None
 
 
-def setup_default_session(**kwargs):
+def setup_default_session(**kwargs: Any) -> None:
     """
     Set up a default session, passing through any parameters to the session
     constructor. There is no need to call this unless you wish to pass custom
@@ -34,7 +38,7 @@ def setup_default_session(**kwargs):
     DEFAULT_SESSION = Session(**kwargs)
 
 
-def set_stream_logger(name='boto3', level=logging.DEBUG, format_string=None):
+def set_stream_logger(name: str = 'boto3', level: int = logging.DEBUG, format_string: Optional[str] = None) -> None:
     """
     Add a stream handler for the given name and level to the logging module.
     By default, this logs all boto3 messages to ``stdout``.
@@ -69,7 +73,7 @@ def set_stream_logger(name='boto3', level=logging.DEBUG, format_string=None):
     logger.addHandler(handler)
 
 
-def _get_default_session():
+def _get_default_session() -> Session:
     """
     Get the default session, creating one if needed.
 
@@ -79,10 +83,11 @@ def _get_default_session():
     if DEFAULT_SESSION is None:
         setup_default_session()
 
+    assert DEFAULT_SESSION
     return DEFAULT_SESSION
 
 
-def client(*args, **kwargs):
+def client(*args: Any, **kwargs: Any) -> BaseClient:
     """
     Create a low-level service client by name using the default session.
 
@@ -91,7 +96,7 @@ def client(*args, **kwargs):
     return _get_default_session().client(*args, **kwargs)
 
 
-def resource(*args, **kwargs):
+def resource(*args: Any, **kwargs: Any) -> ServiceResource:
     """
     Create a resource service client by name using the default session.
 
@@ -103,7 +108,7 @@ def resource(*args, **kwargs):
 # Set up logging to ``/dev/null`` like a library is supposed to.
 # http://docs.python.org/3.3/howto/logging.html#configuring-logging-for-a-library
 class NullHandler(logging.Handler):
-    def emit(self, record):
+    def emit(self, record: Any) -> None:
         pass
 
 

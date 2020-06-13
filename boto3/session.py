@@ -13,14 +13,19 @@
 
 import copy
 import os
+from typing import List, Any, Union, Optional
 
 import botocore.session
-from botocore.client import Config
+from botocore.client import Config, BaseClient
+from botocore.session import Session as BotocoreSession
 from botocore.exceptions import DataNotFoundError, UnknownServiceError
+from botocore.hooks import BaseEventHooks
+from botocore.credentials import Credentials
 
 import boto3
 import boto3.utils
 from boto3.exceptions import ResourceNotExistsError, UnknownAPIVersionError
+from boto3.resources.base import ServiceResource
 
 from .resources.factory import ResourceFactory
 
@@ -45,9 +50,15 @@ class Session(object):
     :param profile_name: The name of a profile to use. If not given, then
                          the default profile is used.
     """
-    def __init__(self, aws_access_key_id=None, aws_secret_access_key=None,
-                 aws_session_token=None, region_name=None,
-                 botocore_session=None, profile_name=None):
+    def __init__(
+        self,
+        aws_access_key_id: str = None,
+        aws_secret_access_key: str = None,
+        aws_session_token: str = None,
+        region_name: str = None,
+        botocore_session: BotocoreSession = None,
+        profile_name: str = None,
+    ):
         if botocore_session is not None:
             self._session = botocore_session
         else:
@@ -80,40 +91,40 @@ class Session(object):
         self._setup_loader()
         self._register_default_handlers()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '{0}(region_name={1})'.format(
             self.__class__.__name__,
             repr(self._session.get_config_variable('region')))
 
     @property
-    def profile_name(self):
+    def profile_name(self) -> str:
         """
         The **read-only** profile name.
         """
         return self._session.profile or 'default'
 
     @property
-    def region_name(self):
+    def region_name(self) -> str:
         """
         The **read-only** region name.
         """
         return self._session.get_config_variable('region')
 
     @property
-    def events(self):
+    def events(self) -> BaseEventHooks:
         """
         The event emitter for a session
         """
         return self._session.get_component('event_emitter')
 
     @property
-    def available_profiles(self):
+    def available_profiles(self) -> List[str]:
         """
         The profiles available to the session credentials
         """
         return self._session.available_profiles
 
-    def _setup_loader(self):
+    def _setup_loader(self) -> None:
         """
         Setup loader paths so that we can load resources.
         """
@@ -121,7 +132,7 @@ class Session(object):
         self._loader.search_paths.append(
             os.path.join(os.path.dirname(__file__), 'data'))
 
-    def get_available_services(self):
+    def get_available_services(self) -> List[str]:
         """
         Get a list of available services that can be loaded as low-level
         clients via :py:meth:`Session.client`.
@@ -131,7 +142,7 @@ class Session(object):
         """
         return self._session.get_available_services()
 
-    def get_available_resources(self):
+    def get_available_resources(self) -> List[str]:
         """
         Get a list of available services that can be loaded as resource
         clients via :py:meth:`Session.resource`.
@@ -141,7 +152,7 @@ class Session(object):
         """
         return self._loader.list_available_services(type_name='resources-1')
 
-    def get_available_partitions(self):
+    def get_available_partitions(self) -> List[str]:
         """Lists the available partitions
 
         :rtype: list
@@ -149,8 +160,12 @@ class Session(object):
         """
         return self._session.get_available_partitions()
 
-    def get_available_regions(self, service_name, partition_name='aws',
-                              allow_non_regional=False):
+    def get_available_regions(
+        self,
+        service_name: str,
+        partition_name: str = 'aws',
+        allow_non_regional: bool = False,
+    ) -> List[str]:
         """Lists the region and endpoint names of a particular partition.
 
         :type service_name: string
@@ -172,7 +187,7 @@ class Session(object):
             service_name=service_name, partition_name=partition_name,
             allow_non_regional=allow_non_regional)
 
-    def get_credentials(self):
+    def get_credentials(self) -> Credentials:
         """
         Return the :class:`botocore.credential.Credential` object
         associated with this session.  If the credentials have not
@@ -182,10 +197,19 @@ class Session(object):
         """
         return self._session.get_credentials()
 
-    def client(self, service_name, region_name=None, api_version=None,
-               use_ssl=True, verify=None, endpoint_url=None,
-               aws_access_key_id=None, aws_secret_access_key=None,
-               aws_session_token=None, config=None):
+    def client(
+        self,
+        service_name: str,
+        region_name: Optional[str] = None,
+        api_version: Optional[str] = None,
+        use_ssl: bool = True,
+        verify: Union[str, bool, None] = None,
+        endpoint_url: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        aws_session_token: Optional[str] = None,
+        config: Optional[Config] = None,
+    ) -> BaseClient:
         """
         Create a low-level service client by name.
 
@@ -262,10 +286,19 @@ class Session(object):
             aws_secret_access_key=aws_secret_access_key,
             aws_session_token=aws_session_token, config=config)
 
-    def resource(self, service_name, region_name=None, api_version=None,
-                 use_ssl=True, verify=None, endpoint_url=None,
-                 aws_access_key_id=None, aws_secret_access_key=None,
-                 aws_session_token=None, config=None):
+    def resource(
+        self,
+        service_name: str,
+        region_name: Optional[str] = None,
+        api_version: Optional[str] = None,
+        use_ssl: bool = True,
+        verify: Union[str, bool, None] = None,
+        endpoint_url: Optional[str] = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        aws_session_token: Optional[str] = None,
+        config: Config = None,
+    ) -> ServiceResource:
         """
         Create a resource service client by name.
 
@@ -350,7 +383,7 @@ class Session(object):
             available_api_versions = self._loader.list_api_versions(
                 service_name, 'resources-1')
             raise UnknownAPIVersionError(
-                service_name, api_version, ', '.join(available_api_versions))
+                service_name, api_version or "latest", ', '.join(available_api_versions))
 
         if api_version is None:
             # Even though botocore's load_service_model() can handle
@@ -408,8 +441,7 @@ class Session(object):
 
         return cls(client=client)
 
-    def _register_default_handlers(self):
-
+    def _register_default_handlers(self) -> None:
         # S3 customizations
         self._session.register(
             'creating-client-class.s3',

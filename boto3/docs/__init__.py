@@ -11,11 +11,16 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import os
+from typing import TYPE_CHECKING
 
 from boto3.docs.service import ServiceDocumenter
 
+if TYPE_CHECKING:
+    from boto3.session import Session
+else:
+    Session = object
 
-def generate_docs(root_dir, session):
+def generate_docs(root_dir: str, session: Session) -> None:
     """Generates the reference documentation for botocore
 
     This will go through every available AWS service and output ReSTructured

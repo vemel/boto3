@@ -10,15 +10,32 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import Optional, List, Dict, Any
+
 from botocore.docs.method import document_model_driven_method
+from botocore.docs.bcdoc.restdoc import DocumentStructure
+from botocore.hooks import BaseEventHooks
+from botocore.model import OperationModel
+
+from boto3.resources.action import Action
+from boto3.resources.base import ResourceModel
 
 
 def document_model_driven_resource_method(
-        section, method_name, operation_model, event_emitter,
-        method_description=None, example_prefix=None, include_input=None,
-        include_output=None, exclude_input=None, exclude_output=None,
-        document_output=True, resource_action_model=None,
-        include_signature=True):
+    section: DocumentStructure,
+    method_name: str,
+    operation_model: OperationModel,
+    event_emitter: BaseEventHooks,
+    resource_action_model: Action,
+    method_description: Optional[str] = None,
+    example_prefix: Optional[str] = None,
+    include_input: Optional[Dict[str, Any]] = None,
+    include_output: Optional[Dict[str, Any]] = None,
+    exclude_input: Optional[List[Any]] = None,
+    exclude_output: Optional[List[Any]] = None,
+    document_output: bool = True,
+    include_signature: bool = True,
+) -> None:
 
     document_model_driven_method(
         section=section, method_name=method_name,
@@ -63,7 +80,7 @@ def document_model_driven_resource_method(
         new_return_section.style.new_line()
 
 
-def _method_returns_resource_list(resource):
+def _method_returns_resource_list(resource: ResourceModel) -> bool:
     for identifier in resource.identifiers:
         if identifier.path and '[]' in identifier.path:
             return True

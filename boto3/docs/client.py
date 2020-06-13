@@ -11,10 +11,11 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from botocore.docs.client import ClientDocumenter
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 
 class Boto3ClientDocumenter(ClientDocumenter):
-    def _add_client_creation_example(self, section):
+    def _add_client_creation_example(self, section: DocumentStructure) -> None:
         section.style.start_codeblock()
         section.style.new_line()
         section.write('import boto3')

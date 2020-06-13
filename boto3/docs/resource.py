@@ -12,6 +12,7 @@
 # language governing permissions and limitations under the License.
 from botocore import xform_name
 from botocore.docs.utils import get_official_service_name
+from botocore.session import Session as BotocoreSession
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.action import ActionDocumenter
@@ -28,7 +29,7 @@ from boto3.docs.utils import add_resource_type_overview
 
 
 class ResourceDocumenter(BaseDocumenter):
-    def __init__(self, resource, botocore_session):
+    def __init__(self, resource, botocore_session: BotocoreSession):
         super(ResourceDocumenter, self).__init__(resource)
         self._botocore_session = botocore_session
 

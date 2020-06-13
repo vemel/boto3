@@ -10,14 +10,24 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import Iterable, Any, Optional, Dict, List, Tuple, Type, TYPE_CHECKING
 
 import jmespath
 from botocore import xform_name
+from botocore.model import ServiceModel
 
-from .params import get_data_member
+from boto3.resources.params import get_data_member
+from boto3.resources.model import Parameter, ResponseResource
+from boto3.resources.base import ServiceResource
+from boto3.utils import ServiceContext
+
+if TYPE_CHECKING:
+    from boto3.resources.factory import ResourceFactory
+else:
+    ResourceFactory = object
 
 
-def all_not_none(iterable):
+def all_not_none(iterable: Iterable[Any]) -> bool:
     """
     Return True if all elements of the iterable are not None (or if the
     iterable is empty). This is like the built-in ``all``, except checks
@@ -29,7 +39,12 @@ def all_not_none(iterable):
     return True
 
 
-def build_identifiers(identifiers, parent, params=None, raw_response=None):
+def build_identifiers(
+    identifiers: Iterable[Parameter],
+    parent: ServiceResource,
+    params: Optional[Dict[str, Any]] = None,
+    raw_response: Optional[Dict[str, Any]] = None,
+) -> List[Tuple[str, Any]]:
     """
     Builds a mapping of identifier names to values based on the
     identifier source location, type, and target. Identifier
@@ -76,7 +91,7 @@ def build_identifiers(identifiers, parent, params=None, raw_response=None):
     return results
 
 
-def build_empty_response(search_path, operation_name, service_model):
+def build_empty_response(search_path: str, operation_name: str, service_model: ServiceModel) -> Any:
     """
     Creates an appropriate empty response for the type that is expected,
     based on the service model's shape type. For example, a value that
@@ -116,13 +131,13 @@ def build_empty_response(search_path, operation_name, service_model):
 
     # Anything not handled here is set to None
     if shape.type_name == 'structure':
-        response = {}
+        return {}
     elif shape.type_name == 'list':
-        response = []
+        return []
     elif shape.type_name == 'map':
-        response = {}
+        return {}
 
-    return response
+    return None
 
 
 class RawHandler(object):
@@ -136,10 +151,10 @@ class RawHandler(object):
     :rtype: dict
     :return: Service response
     """
-    def __init__(self, search_path):
+    def __init__(self, search_path: str) -> None:
         self.search_path = search_path
 
-    def __call__(self, parent, params, response):
+    def __call__(self, parent: ServiceResource, params: Dict[str, Any], response: Dict[str, Any]) -> Any:
         """
         :type parent: ServiceResource
         :param parent: The resource instance to which this action is attached.
@@ -180,15 +195,21 @@ class ResourceHandler(object):
     :rtype: ServiceResource or list
     :return: New resource instance(s).
     """
-    def __init__(self, search_path, factory, resource_model,
-                 service_context, operation_name=None):
+    def __init__(
+        self,
+        search_path: str,
+        factory: ResourceFactory,
+        resource_model: ResponseResource,
+        service_context: ServiceContext,
+        operation_name: Optional[str] = None,
+    ):
         self.search_path = search_path
         self.factory = factory
         self.resource_model = resource_model
         self.operation_name = operation_name
         self.service_context = service_context
 
-    def __call__(self, parent, params, response):
+    def __call__(self, parent: ServiceResource, params: Dict[str, Any], response: Dict[str, Any]) -> Any:
         """
         :type parent: ServiceResource
         :param parent: The resource instance to which this action is attached.
@@ -228,9 +249,10 @@ class ResourceHandler(object):
 
         # If any of the identifiers is a list, then the response is plural
         plural = [v for v in identifiers.values() if isinstance(v, list)]
+        result: Any
 
         if plural:
-            response = []
+            result = []
 
             # The number of items in an identifier that is a list will
             # determine how many resource instances to create.
@@ -241,31 +263,36 @@ class ResourceHandler(object):
                 response_item = None
                 if search_response:
                     response_item = search_response[i]
-                response.append(
+                result.append(
                     self.handle_response_item(resource_cls, parent,
                                               identifiers, response_item))
         elif all_not_none(identifiers.values()):
             # All identifiers must always exist, otherwise the resource
             # cannot be instantiated.
-            response = self.handle_response_item(
+            result = self.handle_response_item(
                 resource_cls, parent, identifiers, search_response)
         else:
             # The response should be empty, but that may mean an
             # empty dict, list, or None based on whether we make
             # a remote service call and what shape it is expected
             # to return.
-            response = None
+            result = None
             if self.operation_name is not None:
                 # A remote service call was made, so try and determine
                 # its shape.
-                response = build_empty_response(
+                result = build_empty_response(
                     self.search_path, self.operation_name,
                     self.service_context.service_model)
 
-        return response
+        return result
 
-    def handle_response_item(self, resource_cls, parent, identifiers,
-                             resource_data):
+    def handle_response_item(
+        self,
+        resource_cls: Type[ServiceResource],
+        parent: ServiceResource,
+        identifiers: Dict[str, Any],
+        resource_data: Optional[Dict[str, Any]],
+    ):
         """
         Handles the creation of a single response item by setting
         parameters and creating the appropriate resource instance.

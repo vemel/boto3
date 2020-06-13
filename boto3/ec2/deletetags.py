@@ -10,10 +10,14 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import Any
+
+from botocore.hooks import BaseEventHooks
+
 from boto3.resources.action import CustomModeledAction
 
 
-def inject_delete_tags(event_emitter, **kwargs):
+def inject_delete_tags(event_emitter: BaseEventHooks, **kwargs: Any) -> None:
     action_model = {
         'request': {
             'operation': 'DeleteTags',
@@ -29,6 +33,6 @@ def inject_delete_tags(event_emitter, **kwargs):
     action.inject(**kwargs)
 
 
-def delete_tags(self, **kwargs):
+def delete_tags(self, **kwargs: Any) -> Any:
     kwargs['Resources'] = [self.id]
     return self.meta.client.delete_tags(**kwargs)
