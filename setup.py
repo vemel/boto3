@@ -26,12 +26,12 @@ def get_version():
 
 
 setup(
-    name='boto3',
+    name='boto3-typed',
     version=get_version(),
     description='The AWS SDK for Python',
     long_description=open('README.rst').read(),
     author='Amazon Web Services',
-    url='https://github.com/boto/boto3',
+    url='https://github.com/vemel/boto3',
     scripts=[],
     packages=find_packages(exclude=['tests*']),
     package_data={
