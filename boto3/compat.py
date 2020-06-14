@@ -26,10 +26,7 @@ if six.PY3:
 else:
     SOCKET_ERROR = socket.error
 
-if six.PY3:
-    import collections.abc as collections_abc
-else:
-    import collections as collections_abc
+import collections.abc as collections_abc
 
 
 if sys.platform.startswith('win'):

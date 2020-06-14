@@ -15,7 +15,6 @@ from typing import Any, List, Dict, Callable, Optional
 
 from botocore.model import OperationModel
 
-from boto3.compat import collections_abc
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 from boto3.dynamodb.conditions import ConditionBase
 from boto3.dynamodb.conditions import ConditionExpressionBuilder
@@ -257,7 +256,7 @@ class ParameterTransformer:
 
     def _transform_structure(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any],
                              target_shape: str) -> None:
-        if not isinstance(params, collections_abc.Mapping):
+        if not isinstance(params, dict):
             return
         for param in params:
             if param in model.members:
@@ -271,7 +270,7 @@ class ParameterTransformer:
                         target_shape)
 
     def _transform_map(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any], target_shape: str) -> None:
-        if not isinstance(params, collections_abc.Mapping):
+        if not isinstance(params, dict):
             return
         value_model = model.value
         value_shape = value_model.name
@@ -283,7 +282,7 @@ class ParameterTransformer:
                     value_model, params[key], transformation, target_shape)
 
     def _transform_list(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any], target_shape: str) -> None:
-        if not isinstance(params, collections_abc.MutableSequence):
+        if not isinstance(params, list):
             return
         member_model = model.member
         member_shape = member_model.name

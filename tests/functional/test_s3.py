@@ -11,12 +11,12 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from tests import unittest
+from io import BytesIO
 
 import botocore
 import botocore.stub
 from botocore.config import Config
 from botocore.stub import Stubber
-from botocore.compat import six
 
 import boto3.session
 from boto3.s3.transfer import TransferConfig
@@ -250,7 +250,7 @@ class TestCopy(BaseTransferTest):
 class TestUploadFileobj(BaseTransferTest):
     def setUp(self):
         super(TestUploadFileobj, self).setUp()
-        self.contents = six.BytesIO(b'foo\n')
+        self.contents = BytesIO(b'foo\n')
 
     def stub_put_object(self):
         put_object_response = {
@@ -334,7 +334,7 @@ class TestUploadFileobj(BaseTransferTest):
 
     def test_multipart_upload(self):
         chunksize = 8 * (1024 ** 2)
-        contents = six.BytesIO(b'0' * (chunksize * 3))
+        contents = BytesIO(b'0' * (chunksize * 3))
         self.stub_multipart_upload(num_parts=3)
         transfer_config = TransferConfig(
             multipart_chunksize=chunksize, multipart_threshold=1,
@@ -353,7 +353,7 @@ class TestDownloadFileobj(BaseTransferTest):
     def setUp(self):
         super(TestDownloadFileobj, self).setUp()
         self.contents = b'foo'
-        self.fileobj = six.BytesIO()
+        self.fileobj = BytesIO()
 
     def stub_single_part_download(self):
         self.stub_head(content_length=len(self.contents))
@@ -397,7 +397,7 @@ class TestDownloadFileobj(BaseTransferTest):
             "ETag": self.etag,
             "ContentLength": len(contents),
             "ContentType": "binary/octet-stream",
-            "Body": six.BytesIO(contents),
+            "Body": BytesIO(contents),
             "ResponseMetadata": {
                 "HTTPStatusCode": 200
             }

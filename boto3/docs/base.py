@@ -11,9 +11,8 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import inspect
-from typing import Any
+from typing import Any, Dict, List
 
-from botocore.compat import OrderedDict
 from botocore.client import BaseClient
 from botocore.docs.bcdoc.restdoc import DocumentStructure
 
@@ -49,7 +48,7 @@ class BaseDocumenter(BotocoreSignatureMixin):
         self._resource_name = self._resource_model.name
         self._service_name = self._service_model.service_name
         self._service_docs_name = self._client.__class__.__name__
-        self.member_map = OrderedDict()
+        self.member_map: Dict[str, List[Any]] = {}
         self.represents_service_resource = (
             self._service_name == self._resource_name)
 

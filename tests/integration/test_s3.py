@@ -19,16 +19,16 @@ import hashlib
 import string
 import datetime
 import logging
+from urllib.request import urlopen
+from io import BytesIO
 
 from tests import unittest, unique_id
-from botocore.compat import six
 from botocore.client import Config
 
 import boto3.session
 import boto3.s3.transfer
 
 
-urlopen = six.moves.urllib.request.urlopen
 LOG = logging.getLogger('boto3.tests.integration')
 
 
@@ -343,7 +343,7 @@ class TestS3Transfers(unittest.TestCase):
         self.object_exists('bar')
 
     def test_upload_fileobj(self):
-        fileobj = six.BytesIO(b'foo')
+        fileobj = BytesIO(b'foo')
         self.client.upload_fileobj(
             Fileobj=fileobj, Bucket=self.bucket_name, Key='foo')
         self.addCleanup(self.delete_object, 'foo')
@@ -360,7 +360,7 @@ class TestS3Transfers(unittest.TestCase):
             multipart_threshold=chunksize,
             max_concurrency=1
         )
-        fileobj = six.BytesIO(b'0' * (chunksize * 3))
+        fileobj = BytesIO(b'0' * (chunksize * 3))
 
         def progress_callback(amount):
             self.progress += amount
@@ -374,7 +374,7 @@ class TestS3Transfers(unittest.TestCase):
         self.assertEqual(self.progress, chunksize * 3)
 
     def test_download_fileobj(self):
-        fileobj = six.BytesIO()
+        fileobj = BytesIO()
         self.client.put_object(
             Bucket=self.bucket_name, Key='foo', Body=b'beach')
         self.addCleanup(self.delete_object, 'foo')
@@ -658,7 +658,7 @@ class TestS3Transfers(unittest.TestCase):
         self.addCleanup(self.delete_object, key)
         self.assertTrue(self.object_exists(key))
 
-        fileobj = six.BytesIO()
+        fileobj = BytesIO()
         self.client.download_fileobj(
             Bucket=self.bucket_name, Key='foo', Fileobj=fileobj, Config=config)
         self.assertEqual(fileobj.getvalue(), content)

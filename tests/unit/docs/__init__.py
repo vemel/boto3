@@ -17,7 +17,6 @@ import shutil
 from tests import unittest
 
 import botocore.session
-from botocore.compat import OrderedDict
 from botocore.loaders import Loader
 from botocore.docs.bcdoc.restdoc import DocumentStructure
 
@@ -85,14 +84,13 @@ class BaseDocsTest(unittest.TestCase):
             'shapes': {
                 'SampleOperationInputOutput': {
                     'type': 'structure',
-                    'members': OrderedDict([
-                        ('Foo', {
+                    'members': {'Foo': {
                             'shape': 'String',
-                            'documentation': 'Documents Foo'}),
-                        ('Bar', {
+                            'documentation': 'Documents Foo'},
+                        'Bar': {
                             'shape': 'String',
-                            'documentation': 'Documents Bar'}),
-                    ])
+                            'documentation': 'Documents Bar'},
+                    }
                 },
                 'String': {
                     'type': 'string'
@@ -107,9 +105,7 @@ class BaseDocsTest(unittest.TestCase):
                     "id": "sample-id",
                     "title": "sample-title",
                     "description": "Sample Description.",
-                    "input": OrderedDict([
-                        ("Foo", "bar"),
-                    ]),
+                    "input": {"Foo": "bar"},
                     "comments": {
                         "input": {
                             "Foo": "biz"
@@ -153,11 +149,11 @@ class BaseDocsTest(unittest.TestCase):
 
         self.resource_json_model = {
             "service": {
-                "actions": OrderedDict([
-                    ("SampleOperation", {
+                "actions": {
+                    "SampleOperation": {
                         "request": {"operation": "SampleOperation"}
-                    }),
-                    ("SampleListReturnOperation", {
+                    },
+                    "SampleListReturnOperation": {
                         "request": {"operation": "SampleOperation"},
                         "resource": {
                             "type": "Sample",
@@ -167,8 +163,8 @@ class BaseDocsTest(unittest.TestCase):
                             ],
                             "path": "Samples[]"
                         }
-                    })
-                ]),
+                    },
+                },
                 "has": {
                     "Sample": {
                         "resource": {
