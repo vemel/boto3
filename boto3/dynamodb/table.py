@@ -11,7 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import logging
-from typing import Any, Dict, Iterable, List, Type
+from typing import Any, Dict, Iterable, List, Optional, Type
 
 from botocore.client import BaseClient
 
@@ -36,7 +36,7 @@ class TableResource:
     meta: ResourceMeta
 
     def batch_writer(
-        self, overwrite_by_pkeys: Iterable[str] = tuple()
+        self, overwrite_by_pkeys: Optional[Iterable[str]] = None
     ) -> "BatchWriter":
         """Create a batch writer object.
 
@@ -77,7 +77,7 @@ class BatchWriter:
         table_name: str,
         client: BaseClient,
         flush_amount: int = 25,
-        overwrite_by_pkeys: Iterable[str] = tuple(),
+        overwrite_by_pkeys: Optional[Iterable[str]] = None,
     ):
         """
 
@@ -110,7 +110,7 @@ class BatchWriter:
         self._client = client
         self._items_buffer: List[Dict[str, Any]] = []
         self._flush_amount = flush_amount
-        self._overwrite_by_pkeys = overwrite_by_pkeys
+        self._overwrite_by_pkeys = overwrite_by_pkeys or tuple()
 
     def put_item(self, Item: Dict[str, Any]) -> None:
         self._add_request_and_process({"PutRequest": {"Item": Item}})

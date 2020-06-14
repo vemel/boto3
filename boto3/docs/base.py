@@ -37,7 +37,18 @@ class BotocoreSignatureMixin:
         section: DocumentStructure, name: str, method: Any
     ) -> None:
         signature = inspect.signature(method)
-        signature_params = ", ".join(signature.parameters)
+        parameters = []
+        for parameter_name, parameter_data in signature.parameters.items():
+            if parameter_name in ("self", "cls"):
+                continue
+            if parameter_data.default is inspect.Parameter.empty:
+                parameters.append(parameter_name)
+                continue
+
+            print("parameter_name", parameter_name, parameter_data.default)
+            parameters.append(f"{parameter_name}={parameter_data.default}")
+
+        signature_params = ", ".join(parameters)
         section.style.start_sphinx_py_method(name, signature_params)
 
 
