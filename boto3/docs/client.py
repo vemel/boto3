@@ -10,11 +10,15 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import inspect
+from typing import Any
+
 from botocore.docs.client import ClientDocumenter
 from botocore.docs.bcdoc.restdoc import DocumentStructure
+from boto3.docs.base import BotocoreSignatureMixin
 
 
-class Boto3ClientDocumenter(ClientDocumenter):
+class Boto3ClientDocumenter(BotocoreSignatureMixin, ClientDocumenter):
     def _add_client_creation_example(self, section: DocumentStructure) -> None:
         section.style.start_codeblock()
         section.style.new_line()

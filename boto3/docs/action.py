@@ -10,12 +10,14 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import inspect
+from typing import Any
+
 from botocore import xform_name
 from botocore.model import OperationModel, ServiceModel
 from botocore.hooks import BaseEventHooks
 from botocore.utils import get_service_module_name
 from botocore.docs.method import document_model_driven_method
-from botocore.docs.method import document_custom_method
 from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 from boto3.docs.base import BaseDocumenter
@@ -68,6 +70,22 @@ class ActionDocumenter(BaseDocumenter):
             else:
                 document_custom_method(
                     action_section, action_name, resource_actions[action_name])
+
+
+def document_custom_signature(section: DocumentStructure, name: str, method: Any) -> None:
+    signature = inspect.signature(method)
+    signature_params = ", ".join(signature.parameters)
+    section.style.start_sphinx_py_method(name, signature_params)
+
+
+def document_custom_method(section: DocumentStructure, method_name: str, method: Any) -> None:
+    document_custom_signature(
+        section, method_name, method)
+    method_intro_section = section.add_new_section('method-intro')
+    method_intro_section.writeln('')
+    doc_string = inspect.getdoc(method)
+    if doc_string is not None:
+        method_intro_section.style.write_py_doc_string(doc_string)
 
 
 def document_action(section: DocumentStructure, resource_name: str, event_emitter: BaseEventHooks, action_model: Action,
