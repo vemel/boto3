@@ -80,6 +80,7 @@ class TestServiceActionParams(BaseTestCase):
                 'SomeMember': 'w-url'
             }
 
+        parent.has_load.return_value = True
         parent.load.side_effect = load_data
         parent.meta = ResourceMeta('test')
 
@@ -104,6 +105,7 @@ class TestServiceActionParams(BaseTestCase):
         # This mock has no ``load`` method.
         parent = mock.Mock(spec=ServiceResource)
         parent.meta = ResourceMeta('test', data=None)
+        parent.has_load.return_value = False
 
         with self.assertRaises(ResourceLoadException):
             params = create_request_parameters(parent, request_model)

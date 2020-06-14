@@ -472,6 +472,11 @@ class ResourceModel:
 
         return action
 
+
+    @staticmethod
+    def has_load() -> bool:
+        return True
+
     @property
     def actions(self) -> List[Action]:
         """

@@ -42,11 +42,12 @@ def get_data_member(parent: ServiceResource, path: str) -> Any:
     """
     # Ensure the parent has its data loaded, if possible.
     if parent.meta.data is None:
-        if hasattr(parent, 'load'):
+        if parent.has_load():
             parent.load()
         else:
             raise ResourceLoadException(
                 '{0} has no load method!'.format(parent.__class__.__name__))
+
 
     return jmespath.search(path, parent.meta.data)
 

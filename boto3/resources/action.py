@@ -77,9 +77,9 @@ class ServiceAction(object):
                 operation_name=action_model.request.operation
             )
         else:
-            self._response_handler = RawHandler(action_model.path)
+            self._response_handler = RawHandler(action_model.path or "")
 
-    def __call__(self, parent: ServiceResource, *args: Any, **kwargs: Any) -> Union[ServiceResource, List[ServiceResource], Dict[str, Any]]:
+    def __call__(self, parent: ServiceResource, *args: Any, **kwargs: Any) -> Any:
         """
         Perform the action's request operation after building operation
         parameters and build any defined resources from the response.

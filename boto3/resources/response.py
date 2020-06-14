@@ -141,7 +141,7 @@ def build_empty_response(search_path: str, operation_name: str, service_model: S
     return None
 
 
-class RawHandler(object):
+class RawHandler:
     """
     A raw action response handler. This passed through the response
     dictionary, optionally after performing a JMESPath search if one

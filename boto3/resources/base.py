@@ -16,6 +16,7 @@ from typing import Optional, List, Dict, Any
 
 import boto3
 from boto3.resources.model import ResourceModel
+from boto3.exceptions import ResourceLoadException
 from botocore.client import BaseClient
 
 
@@ -155,3 +156,11 @@ class ServiceResource:
         for identifier in self.meta.identifiers:
             identifiers.append(getattr(self, identifier))
         return hash((self.__class__.__name__, tuple(identifiers)))
+
+    def load(self) -> None:
+        raise ResourceLoadException(
+                        '{0} has no load method'.format(
+                            self.__class__.__name__))
+
+    def has_load(self) -> bool:
+        return self.__class__.load != ServiceResource.load

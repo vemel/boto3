@@ -77,7 +77,7 @@ class TestServiceActionCall(BaseTestCase):
 
         action(resource)
 
-        handler_mock.assert_called_with(None)
+        handler_mock.assert_called_with("")
         handler_mock.return_value.assert_called_with(resource, {}, 'response')
 
     @mock.patch('boto3.resources.action.create_request_parameters',

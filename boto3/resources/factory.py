@@ -344,13 +344,9 @@ class ResourceFactory:
         # calls the load before returning the value.
         def property_loader(self: ServiceResource) -> Any:
             if self.meta.data is None:
-                if hasattr(self, 'load'):
-                    self.load()
-                else:
-                    raise ResourceLoadException(
-                        '{0} has no load method'.format(
-                            self.__class__.__name__))
+                self.load()
 
+            assert self.meta.data
             return self.meta.data.get(name)
 
         property_loader.__name__ = str(snake_cased)
@@ -527,13 +523,12 @@ class ResourceFactory:
             # instance via ``self``.
             def do_action(self: ServiceResource, *args: Any, **kwargs: Any) -> Any:
                 response = action(self, *args, **kwargs)
-
-                if hasattr(self, 'load'):
+                
+                if self.has_load():
                     # Clear cached data. It will be reloaded the next
                     # time that an attribute is accessed.
                     # TODO: Make this configurable in the future?
                     self.meta.data = None
-
                 return response
             lazy_docstring = docstring.ActionDocstring(
                 resource_name=resource_name,
