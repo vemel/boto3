@@ -10,22 +10,29 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import List
+
 from botocore import xform_name
 from botocore.utils import get_service_module_name
 from botocore.docs.method import document_model_driven_method
+from botocore.waiter import WaiterModel, Waiter
+from botocore.docs.bcdoc.restdoc import DocumentStructure
+from botocore.model import ServiceModel
+from botocore.hooks import BaseEventHooks
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.utils import get_resource_ignore_params
 from boto3.docs.utils import add_resource_type_overview
+from boto3.resources.base import ServiceResource
 
 
 class WaiterResourceDocumenter(BaseDocumenter):
-    def __init__(self, resource, service_waiter_model):
+    def __init__(self, resource: Waiter, service_waiter_model: WaiterModel):
         super(WaiterResourceDocumenter, self).__init__(resource)
         self._service_waiter_model = service_waiter_model
 
-    def document_resource_waiters(self, section):
-        waiters = self._resource.meta.resource_model.waiters
+    def document_resource_waiters(self, section: DocumentStructure) -> None:
+        waiters = self.resource_model.waiters
         add_resource_type_overview(
             section=section,
             resource_type='Waiters',
@@ -33,11 +40,12 @@ class WaiterResourceDocumenter(BaseDocumenter):
                 'Waiters provide an interface to wait for a resource'
                 ' to reach a specific state.'),
             intro_link='waiters_intro')
-        waiter_list = []
+        waiter_list: List[str] = []
         self.member_map['waiters'] = waiter_list
         for waiter in waiters:
             waiter_section = section.add_new_section(waiter.name)
             waiter_list.append(waiter.name)
+            assert self._resource.meta.client
             document_resource_waiter(
                 section=waiter_section,
                 resource_name=self._resource_name,
@@ -48,9 +56,9 @@ class WaiterResourceDocumenter(BaseDocumenter):
             )
 
 
-def document_resource_waiter(section, resource_name, event_emitter,
-                             service_model, resource_waiter_model,
-                             service_waiter_model, include_signature=True):
+def document_resource_waiter(section: DocumentStructure, resource_name: str, event_emitter: BaseEventHooks,
+                             service_model: ServiceModel, resource_waiter_model: WaiterModel,
+                             service_waiter_model: WaiterModel, include_signature: bool=True) -> None:
     waiter_model = service_waiter_model.get_waiter(
         resource_waiter_model.waiter_name)
     operation_model = service_model.operation_model(

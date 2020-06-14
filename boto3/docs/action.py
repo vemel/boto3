@@ -11,20 +11,23 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from botocore import xform_name
-from botocore.model import OperationModel
+from botocore.model import OperationModel, ServiceModel
+from botocore.hooks import BaseEventHooks
 from botocore.utils import get_service_module_name
 from botocore.docs.method import document_model_driven_method
 from botocore.docs.method import document_custom_method
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.method import document_model_driven_resource_method
 from boto3.docs.utils import get_resource_ignore_params
 from boto3.docs.utils import get_resource_public_actions
 from boto3.docs.utils import add_resource_type_overview
+from boto3.resources.action import Action
 
 
 class ActionDocumenter(BaseDocumenter):
-    def document_actions(self, section):
+    def document_actions(self, section: DocumentStructure) -> None:
         modeled_actions_list = self._resource_model.actions
         modeled_actions = {}
         for modeled_action in modeled_actions_list:
@@ -44,6 +47,7 @@ class ActionDocumenter(BaseDocumenter):
         for action_name in sorted(resource_actions):
             action_section = section.add_new_section(action_name)
             if action_name in ['load', 'reload'] and self._resource_model.load:
+                assert self._resource.meta.client
                 document_load_reload_action(
                     section=action_section,
                     action_name=action_name,
@@ -53,6 +57,7 @@ class ActionDocumenter(BaseDocumenter):
                     service_model=self._service_model
                 )
             elif action_name in modeled_actions:
+                assert self._resource.meta.client
                 document_action(
                     section=action_section,
                     resource_name=self._resource_name,
@@ -65,8 +70,8 @@ class ActionDocumenter(BaseDocumenter):
                     action_section, action_name, resource_actions[action_name])
 
 
-def document_action(section, resource_name, event_emitter, action_model,
-                    service_model, include_signature=True):
+def document_action(section: DocumentStructure, resource_name: str, event_emitter: BaseEventHooks, action_model: Action,
+                    service_model: ServiceModel, include_signature: bool=True) -> None:
     """Documents a resource action
 
     :param section: The section to write to
@@ -106,9 +111,9 @@ def document_action(section, resource_name, event_emitter, action_model,
     )
 
 
-def document_load_reload_action(section, action_name, resource_name,
-                                event_emitter, load_model, service_model,
-                                include_signature=True):
+def document_load_reload_action(section: DocumentStructure, action_name: str, resource_name: str,
+                                event_emitter: BaseEventHooks, load_model: Action, service_model: ServiceModel,
+                                include_signature: bool=True) -> None:
     """Documents the resource load action
 
     :param section: The section to write to

@@ -10,7 +10,9 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from botocore.docs.docstring import LazyLoadedDocstring
+from typing import Any
+
+from botocore.docs.docstring import LazyLoadedDocstring, DocumentStructure
 
 from boto3.docs.action import document_action
 from boto3.docs.action import document_load_reload_action
@@ -22,53 +24,54 @@ from boto3.docs.collection import document_collection_object
 from boto3.docs.collection import document_collection_method
 from boto3.docs.collection import document_batch_action
 from boto3.docs.waiter import document_resource_waiter
+from boto3.resources.action import Action
 
 
 class ActionDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_action(*args, **kwargs)
 
 
 class LoadReloadDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_load_reload_action(*args, **kwargs)
 
 
 class SubResourceDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_sub_resource(*args, **kwargs)
 
 
 class AttributeDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_attribute(*args, **kwargs)
 
 
 class IdentifierDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_identifier(*args, **kwargs)
 
 
 class ReferenceDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
-        document_reference(*args, **kwargs)
+    def _write_docstring(self, section: DocumentStructure, reference_model: Action, include_signature: bool=True) -> None:
+        document_reference(section=section, reference_model=reference_model, include_signature=include_signature)
 
 
 class CollectionDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_collection_object(*args, **kwargs)
 
 
 class CollectionMethodDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_collection_method(*args, **kwargs)
 
 
 class BatchActionDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_batch_action(*args, **kwargs)
 
 
 class ResourceWaiterDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, *args, **kwargs):
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
         document_resource_waiter(*args, **kwargs)

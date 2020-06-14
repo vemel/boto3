@@ -10,18 +10,23 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import List
 from botocore import xform_name
 from botocore.utils import get_service_module_name
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.utils import get_identifier_args_for_signature
 from boto3.docs.utils import get_identifier_values_for_example
 from boto3.docs.utils import get_identifier_description
 from boto3.docs.utils import add_resource_type_overview
+from boto3.resources.model import ResourceModel
+from boto3.resources.base import ServiceResource, ResourceMeta
+from boto3.resources.action import Action
 
 
 class SubResourceDocumenter(BaseDocumenter):
-    def document_sub_resources(self, section):
+    def document_sub_resources(self, section: DocumentStructure) -> None:
         add_resource_type_overview(
             section=section,
             resource_type='Sub-resources',
@@ -30,11 +35,12 @@ class SubResourceDocumenter(BaseDocumenter):
                 ' child resource. This resource\'s identifiers get passed'
                 ' along to the child.'),
             intro_link='subresources_intro')
+        assert self._resource.meta.resource_model
         sub_resources = sorted(
             self._resource.meta.resource_model.subresources,
             key=lambda sub_resource: sub_resource.name
         )
-        sub_resources_list = []
+        sub_resources_list: List[str] = []
         self.member_map['sub-resources'] = sub_resources_list
         for sub_resource in sub_resources:
             sub_resource_section = section.add_new_section(sub_resource.name)
@@ -47,8 +53,8 @@ class SubResourceDocumenter(BaseDocumenter):
             )
 
 
-def document_sub_resource(section, resource_name, sub_resource_model,
-                          service_model, include_signature=True):
+def document_sub_resource(section: DocumentStructure, resource_name: str, sub_resource_model: Action,
+                          service_model: ResourceMeta, include_signature: bool=True) -> None:
     """Documents a resource action
 
     :param section: The section to write to
@@ -91,13 +97,13 @@ def document_sub_resource(section, resource_name, sub_resource_model,
     example_section.style.end_codeblock()
 
     param_section = section.add_new_section('params')
-    for identifier in identifiers_needed:
+    for identifier_name in identifiers_needed:
         description = get_identifier_description(
-            sub_resource_model.name, identifier)
-        param_section.write(':type %s: string' % identifier)
+            sub_resource_model.name, identifier_name)
+        param_section.write(':type %s: string' % identifier_name)
         param_section.style.new_line()
         param_section.write(':param %s: %s' % (
-            identifier, description))
+            identifier_name, description))
         param_section.style.new_line()
 
     return_section = section.add_new_section('return')

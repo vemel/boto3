@@ -17,7 +17,8 @@ from typing import Any, Generic, Iterator, List, TypeVar, Dict, Type, Callable, 
 
 from botocore import xform_name
 from botocore.utils import merge_dicts
-from botocore.hooks import HierarchicalEmitter
+from botocore.hooks import BaseEventHooks
+from botocore.model import ServiceModel
 
 from boto3.docs import docstring
 from boto3.resources.action import BatchAction, Action
@@ -389,7 +390,7 @@ class CollectionFactory(object):
         resource_name: str,
         collection_model: Collection,
         service_context: ServiceContext,
-        event_emitter: HierarchicalEmitter
+        event_emitter: BaseEventHooks
     ) -> Type[CollectionManager]:
         """
         Loads a collection from a model, creating a new
@@ -454,8 +455,8 @@ class CollectionFactory(object):
         attrs: Dict[str, Any],
         resource_name: str,
         collection_model: Collection,
-        service_model: ServiceResource,
-        event_emitter: HierarchicalEmitter,
+        service_model: ServiceModel,
+        event_emitter: BaseEventHooks,
     ) -> None:
         """
         Batch actions on the collection become methods on both
@@ -472,8 +473,8 @@ class CollectionFactory(object):
         attrs: Dict[str, Any],
         resource_name: str,
         collection_model: Collection,
-        service_model: ServiceResource,
-        event_emitter: HierarchicalEmitter,
+        service_model: ServiceModel,
+        event_emitter: BaseEventHooks,
         base_class: Any,
     ) -> None:
         # The base class already has these methods defined. However
@@ -544,8 +545,8 @@ class CollectionFactory(object):
         snake_cased: str,
         action_model: Action,
         collection_model: Collection,
-        service_model: ServiceResource,
-        event_emitter: HierarchicalEmitter,
+        service_model: ServiceModel,
+        event_emitter: BaseEventHooks,
     ) -> Callable[..., List[Dict[str, Any]]]:
         """
         Creates a new method which makes a batch operation request

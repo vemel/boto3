@@ -10,20 +10,28 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import List, Dict, Any
+
 from botocore import xform_name
 from botocore.docs.method import get_instance_public_methods
+from botocore.docs.bcdoc.restdoc import DocumentStructure
+from botocore.hooks import BaseEventHooks
+from botocore.model import ServiceModel
 from botocore.docs.utils import DocumentedShape
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.utils import get_resource_ignore_params
 from boto3.docs.method import document_model_driven_resource_method
 from boto3.docs.utils import add_resource_type_overview
+from boto3.resources.model import Collection
+from boto3.resources.action import Action
 
 
 class CollectionDocumenter(BaseDocumenter):
-    def document_collections(self, section):
+    def document_collections(self, section: DocumentStructure) -> None:
+        assert self._resource.meta.resource_model
         collections = self._resource.meta.resource_model.collections
-        collections_list = []
+        collections_list: List[str] = []
         add_resource_type_overview(
             section=section,
             resource_type='Collections',
@@ -37,7 +45,7 @@ class CollectionDocumenter(BaseDocumenter):
             collections_list.append(collection.name)
             self._document_collection(collection_section, collection)
 
-    def _document_collection(self, section, collection):
+    def _document_collection(self, section: DocumentStructure, collection: Collection) -> None:
         methods = get_instance_public_methods(
             getattr(self._resource, collection.name))
         document_collection_object(section, collection)
@@ -46,6 +54,7 @@ class CollectionDocumenter(BaseDocumenter):
             batch_actions[batch_action.name] = batch_action
 
         for method in sorted(methods):
+            assert self._resource.meta.client
             method_section = section.add_new_section(method)
             if method in batch_actions:
                 document_batch_action(
@@ -67,8 +76,8 @@ class CollectionDocumenter(BaseDocumenter):
                 )
 
 
-def document_collection_object(section, collection_model,
-                               include_signature=True):
+def document_collection_object(section: DocumentStructure, collection_model: Collection,
+                               include_signature: bool=True) -> None:
     """Documents a collection resource object
 
     :param section: The section to write to
@@ -88,9 +97,9 @@ def document_collection_object(section, collection_model,
         'actions on all resources.' % collection_model.resource.type)
 
 
-def document_batch_action(section, resource_name, event_emitter,
-                          batch_action_model, service_model, collection_model,
-                          include_signature=True):
+def document_batch_action(section: DocumentStructure, resource_name: str, event_emitter: BaseEventHooks,
+                          batch_action_model: Action, service_model: ServiceModel, collection_model: Collection,
+                          include_signature: bool=True) -> None:
     """Documents a collection's batch action
 
     :param section: The section to write to
@@ -139,9 +148,9 @@ def document_batch_action(section, resource_name, event_emitter,
     )
 
 
-def document_collection_method(section, resource_name, action_name,
-                               event_emitter, collection_model, service_model,
-                               include_signature=True):
+def document_collection_method(section: DocumentStructure, resource_name: str, action_name: str,
+                               event_emitter: BaseEventHooks, collection_model: Collection, service_model: ServiceModel,
+                               include_signature: bool=True) -> None:
     """Documents a collection method
 
     :param section: The section to write to
@@ -171,18 +180,12 @@ def document_collection_method(section, resource_name, action_name,
     if service_model.service_name == resource_name:
         example_resource_name = resource_name
 
-    custom_action_info_dict = {
-        'all': {
-            'method_description': (
+    custom_action_names = ['all', 'filter', 'limit', 'page_size']
+    method_descriptions: Dict[str, str] = {
+        'all': (
                 'Creates an iterable of all %s resources '
                 'in the collection.' % collection_model.resource.type),
-            'example_prefix': '%s_iterator = %s.%s.all' % (
-                xform_name(collection_model.resource.type),
-                example_resource_name, collection_model.name),
-            'exclude_input': underlying_operation_members
-        },
-        'filter': {
-            'method_description': (
+        'filter': (
                 'Creates an iterable of all %s resources '
                 'in the collection filtered by kwargs passed to '
                 'method.' % collection_model.resource.type +
@@ -190,53 +193,66 @@ def document_collection_method(section, resource_name, action_name,
                 'default if no filters are provided, and extreme '
                 'caution should be taken when performing actions '
                 'on all resources.'% collection_model.resource.type),
-            'example_prefix': '%s_iterator = %s.%s.filter' % (
-                xform_name(collection_model.resource.type),
-                example_resource_name, collection_model.name),
-            'exclude_input': get_resource_ignore_params(
-                collection_model.request.params)
-        },
-        'limit': {
-            'method_description': (
+        'limit': (
                 'Creates an iterable up to a specified amount of '
                 '%s resources in the collection.' %
                 collection_model.resource.type),
-            'example_prefix': '%s_iterator = %s.%s.limit' % (
+        'page_size': (
+            'Creates an iterable of all %s resources '
+            'in the collection, but limits the number of '
+            'items returned by each service call by the specified '
+            'amount.' % collection_model.resource.type)
+    }
+
+    example_prefixes: Dict[str, str] = {
+        'all': '%s_iterator = %s.%s.all' % (
                 xform_name(collection_model.resource.type),
                 example_resource_name, collection_model.name),
-            'include_input': [
-                DocumentedShape(
+        'filter': '%s_iterator = %s.%s.filter' % (
+                xform_name(collection_model.resource.type),
+                example_resource_name, collection_model.name),
+        'limit': '%s_iterator = %s.%s.limit' % (
+                xform_name(collection_model.resource.type),
+                example_resource_name, collection_model.name),
+        'page_size': '%s_iterator = %s.%s.page_size' % (
+                xform_name(collection_model.resource.type),
+                example_resource_name, collection_model.name)
+    }
+
+    include_inputs: Dict[str, List[DocumentedShape]] = {
+        'limit': [DocumentedShape(
                     name='count', type_name='integer',
                     documentation=(
                         'The limit to the number of resources '
                         'in the iterable.'))],
-            'exclude_input': underlying_operation_members
-        },
-        'page_size': {
-            'method_description': (
-                'Creates an iterable of all %s resources '
-                'in the collection, but limits the number of '
-                'items returned by each service call by the specified '
-                'amount.' % collection_model.resource.type),
-            'example_prefix': '%s_iterator = %s.%s.page_size' % (
-                xform_name(collection_model.resource.type),
-                example_resource_name, collection_model.name),
-            'include_input': [
-                DocumentedShape(
+        'page_size': [DocumentedShape(
                     name='count', type_name='integer',
                     documentation=(
                         'The number of items returned by each '
-                        'service call'))],
-            'exclude_input': underlying_operation_members
-        }
+                        'service call'))]
     }
-    if action_name in custom_action_info_dict:
-        action_info = custom_action_info_dict[action_name]
+
+    exclude_inputs: Dict[str, List[str]] = {
+        'all': underlying_operation_members,
+        'filter': get_resource_ignore_params(
+                collection_model.request.params),
+        'limit': underlying_operation_members,
+        'page_size': underlying_operation_members
+    }
+    if action_name in custom_action_names:
+        method_description = method_descriptions.get(action_name)
+        example_prefix = example_prefixes.get(action_name)
+        include_input = include_inputs.get(action_name)
+        exclude_input = exclude_inputs.get(action_name)
         document_model_driven_resource_method(
-            section=section, method_name=action_name,
+            section=section,
+            method_name=action_name,
             operation_model=operation_model,
             event_emitter=event_emitter,
             resource_action_model=collection_model,
+            method_description=method_description,
+            example_prefix=example_prefix,
+            include_input=include_input,
+            exclude_input=exclude_input,
             include_signature=include_signature,
-            **action_info
         )

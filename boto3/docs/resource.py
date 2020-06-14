@@ -10,9 +10,11 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+from typing import Iterable, List, Dict, Any
 from botocore import xform_name
 from botocore.docs.utils import get_official_service_name
 from botocore.session import Session as BotocoreSession
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 
 from boto3.docs.base import BaseDocumenter
 from boto3.docs.action import ActionDocumenter
@@ -26,14 +28,15 @@ from boto3.docs.utils import get_identifier_args_for_signature
 from boto3.docs.utils import get_identifier_values_for_example
 from boto3.docs.utils import get_identifier_description
 from boto3.docs.utils import add_resource_type_overview
+from boto3.resources.base import ServiceResource
 
 
 class ResourceDocumenter(BaseDocumenter):
-    def __init__(self, resource, botocore_session: BotocoreSession):
+    def __init__(self, resource: ServiceResource, botocore_session: BotocoreSession) -> None:
         super(ResourceDocumenter, self).__init__(resource)
         self._botocore_session = botocore_session
 
-    def document_resource(self, section):
+    def document_resource(self, section: DocumentStructure) -> None:
         self._add_title(section)
         self._add_intro(section)
         overview_section = section.add_new_section('member-overview')
@@ -46,10 +49,10 @@ class ResourceDocumenter(BaseDocumenter):
         self._add_waiters(section)
         self._add_overview_of_members(overview_section)
 
-    def _add_title(self, section):
+    def _add_title(self, section: DocumentStructure) -> None:
         section.style.h2(self._resource_name)
 
-    def _add_intro(self, section):
+    def _add_intro(self, section: DocumentStructure) -> None:
         identifier_names = []
         if self._resource_model.identifiers:
             for identifier in self._resource_model.identifiers:
@@ -73,14 +76,14 @@ class ResourceDocumenter(BaseDocumenter):
         param_section = section.add_new_section('params')
         self._add_params_description(param_section, identifier_names)
 
-    def _add_description(self, section):
+    def _add_description(self, section: DocumentStructure) -> None:
         official_service_name = get_official_service_name(
             self._service_model)
         section.write(
             'A resource representing an %s %s' % (
                 official_service_name, self._resource_name))
 
-    def _add_example(self, section, identifier_names):
+    def _add_example(self, section: DocumentStructure, identifier_names: Iterable[str]) -> None:
         section.style.start_codeblock()
         section.style.new_line()
         section.write('import boto3')
@@ -98,7 +101,7 @@ class ResourceDocumenter(BaseDocumenter):
                 self._resource_name, example_values))
         section.style.end_codeblock()
 
-    def _add_params_description(self, section, identifier_names):
+    def _add_params_description(self, section: DocumentStructure, identifier_names: Iterable[str]) -> None:
         for identifier_name in identifier_names:
             description = get_identifier_description(
                 self._resource_name, identifier_name)
@@ -108,7 +111,7 @@ class ResourceDocumenter(BaseDocumenter):
                 identifier_name, description))
             section.style.new_line()
 
-    def _add_overview_of_members(self, section):
+    def _add_overview_of_members(self, section: DocumentStructure) -> None:
         for resource_member_type in self.member_map:
             section.style.new_line()
             section.write('These are the resource\'s available %s:' % (
@@ -121,10 +124,11 @@ class ResourceDocumenter(BaseDocumenter):
                 else:
                     section.style.li(':py:meth:`%s()`' % member)
 
-    def _add_identifiers(self, section):
+    def _add_identifiers(self, section: DocumentStructure) -> None:
+        assert self._resource.meta.resource_model
         identifiers = self._resource.meta.resource_model.identifiers
         section = section.add_new_section('identifiers')
-        member_list = []
+        member_list: List[str] = []
         if identifiers:
             self.member_map['identifiers'] = member_list
             add_resource_type_overview(
@@ -143,16 +147,17 @@ class ResourceDocumenter(BaseDocumenter):
                 identifier_model=identifier
             )
 
-    def _add_attributes(self, section):
+    def _add_attributes(self, section: DocumentStructure) -> None:
+        assert self._resource.meta.client
         service_model = self._resource.meta.client.meta.service_model
-        attributes = {}
-        if self._resource.meta.resource_model.shape:
+        attributes: Dict[str, Any] = {}
+        if self.resource_model.shape:
             shape = service_model.shape_for(
-                self._resource.meta.resource_model.shape)
-            attributes = self._resource.meta.resource_model.get_attributes(
+                self.resource_model.shape)
+            attributes = self.resource_model.get_attributes(
                 shape)
         section = section.add_new_section('attributes')
-        attribute_list = []
+        attribute_list: List[str] = []
         if attributes:
             add_resource_type_overview(
                 section=section,
@@ -173,14 +178,14 @@ class ResourceDocumenter(BaseDocumenter):
                 service_name=self._service_name,
                 resource_name=self._resource_name,
                 attr_name=attr_name,
-                event_emitter=self._resource.meta.client.meta.events,
+                event_emitter=self.client.meta.events,
                 attr_model=attr_shape
             )
 
-    def _add_references(self, section):
+    def _add_references(self, section: DocumentStructure) -> None:
         section = section.add_new_section('references')
-        references = self._resource.meta.resource_model.references
-        reference_list = []
+        references = self.resource_model.references
+        reference_list: List[str] = []
         if references:
             add_resource_type_overview(
                 section=section,
@@ -195,36 +200,37 @@ class ResourceDocumenter(BaseDocumenter):
             reference_list.append(reference.name)
             document_reference(
                 section=reference_section,
-                reference_model=reference
+                reference_model=reference,
+                include_signature=True,
             )
 
-    def _add_actions(self, section):
+    def _add_actions(self, section: DocumentStructure) -> None:
         section = section.add_new_section('actions')
-        actions = self._resource.meta.resource_model.actions
+        actions = self.resource_model.actions
         if actions:
             documenter = ActionDocumenter(self._resource)
             documenter.member_map = self.member_map
             documenter.document_actions(section)
 
-    def _add_sub_resources(self, section):
+    def _add_sub_resources(self, section: DocumentStructure) -> None:
         section = section.add_new_section('sub-resources')
-        sub_resources = self._resource.meta.resource_model.subresources
+        sub_resources = self.resource_model.subresources
         if sub_resources:
             documenter = SubResourceDocumenter(self._resource)
             documenter.member_map = self.member_map
             documenter.document_sub_resources(section)
 
-    def _add_collections(self, section):
+    def _add_collections(self, section: DocumentStructure) -> None:
         section = section.add_new_section('collections')
-        collections = self._resource.meta.resource_model.collections
+        collections = self.resource_model.collections
         if collections:
             documenter = CollectionDocumenter(self._resource)
             documenter.member_map = self.member_map
             documenter.document_collections(section)
 
-    def _add_waiters(self, section):
+    def _add_waiters(self, section: DocumentStructure) -> None:
         section = section.add_new_section('waiters')
-        waiters = self._resource.meta.resource_model.waiters
+        waiters = self.resource_model.waiters
         if waiters:
             service_waiter_model = self._botocore_session.get_waiter_model(
                 self._service_name)
@@ -236,19 +242,19 @@ class ResourceDocumenter(BaseDocumenter):
 
 class ServiceResourceDocumenter(ResourceDocumenter):
     @property
-    def class_name(self):
+    def class_name(self) -> str:
         return '%s.ServiceResource' % self._service_docs_name
 
-    def _add_title(self, section):
+    def _add_title(self, section: DocumentStructure) -> None:
         section.style.h2('Service Resource')
 
-    def _add_description(self, section):
+    def _add_description(self, section: DocumentStructure) -> None:
         official_service_name = get_official_service_name(
             self._service_model)
         section.write(
             'A resource representing %s' % official_service_name)
 
-    def _add_example(self, section, identifier_names):
+    def _add_example(self, section: DocumentStructure, identifier_names: Iterable[str]) -> None:
         section.style.start_codeblock()
         section.style.new_line()
         section.write('import boto3')

@@ -11,13 +11,15 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import inspect
+from typing import List, Iterable, Any, Dict, Optional
 
 import jmespath
+from botocore.docs.bcdoc.restdoc import DocumentStructure
 
-from botocore.compat import six
+from boto3.resources.model import Parameter
 
 
-def get_resource_ignore_params(params):
+def get_resource_ignore_params(params: Iterable[Parameter]) -> List[str]:
     """Helper method to determine which parameters to ignore for actions
 
     :returns: A list of the parameter names that does not need to be
@@ -38,14 +40,11 @@ def get_resource_ignore_params(params):
     return ignore_params
 
 
-def is_resource_action(action_handle):
-    if six.PY3:
-        return inspect.isfunction(action_handle)
-    else:
-        return inspect.ismethod(action_handle)
+def is_resource_action(action_handle: Any) -> bool:
+    return inspect.isfunction(action_handle)
 
 
-def get_resource_public_actions(resource_class):
+def get_resource_public_actions(resource_class: Any) -> Dict[str, Any]:
     resource_class_members = inspect.getmembers(resource_class)
     resource_methods = {}
     for name, member in resource_class_members:
@@ -57,22 +56,22 @@ def get_resource_public_actions(resource_class):
     return resource_methods
 
 
-def get_identifier_values_for_example(identifier_names):
+def get_identifier_values_for_example(identifier_names: Iterable[str]) -> str:
     example_values = ['\'%s\'' % identifier for identifier in identifier_names]
     return ','.join(example_values)
 
 
-def get_identifier_args_for_signature(identifier_names):
+def get_identifier_args_for_signature(identifier_names: Iterable[str]) -> str:
     return ','.join(identifier_names)
 
 
-def get_identifier_description(resource_name, identifier_name):
+def get_identifier_description(resource_name: str, identifier_name: str) -> str:
     return "The %s's %s identifier. This **must** be set." % (
         resource_name, identifier_name)
 
 
-def add_resource_type_overview(section, resource_type, description,
-                               intro_link=None):
+def add_resource_type_overview(section: DocumentStructure, resource_type: str, description: str,
+                               intro_link: Optional[str]=None) -> None:
     section.style.new_line()
     section.write('.. rst-class:: admonition-title')
     section.style.new_line()
@@ -89,16 +88,16 @@ def add_resource_type_overview(section, resource_type, description,
         section.style.new_line()
 
 
-class DocumentModifiedShape(object):
-    def __init__(self, shape_name, new_type, new_description,
-                 new_example_value):
+class DocumentModifiedShape:
+    def __init__(self, shape_name: str, new_type: str, new_description: str,
+                 new_example_value: str) -> None:
         self._shape_name = shape_name
         self._new_type = new_type
         self._new_description = new_description
         self._new_example_value = new_example_value
 
-    def replace_documentation_for_matching_shape(self, event_name, section,
-                                                 **kwargs):
+    def replace_documentation_for_matching_shape(self, event_name: str, section: DocumentStructure,
+                                                 **kwargs: Any) -> None:
         if self._shape_name == section.context.get('shape'):
             self._replace_documentation(event_name, section)
         for section_name in section.available_sections:
@@ -109,7 +108,7 @@ class DocumentModifiedShape(object):
                 self.replace_documentation_for_matching_shape(
                     event_name, sub_section)
 
-    def _replace_documentation(self, event_name, section):
+    def _replace_documentation(self, event_name: str, section: DocumentStructure) -> None:
         if event_name.startswith('docs.request-example') or \
                 event_name.startswith('docs.response-example'):
             section.remove_all_sections()

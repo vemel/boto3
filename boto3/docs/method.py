@@ -15,10 +15,11 @@ from typing import Optional, List, Dict, Any
 from botocore.docs.method import document_model_driven_method
 from botocore.docs.bcdoc.restdoc import DocumentStructure
 from botocore.hooks import BaseEventHooks
+from botocore.docs.utils import DocumentedShape
 from botocore.model import OperationModel
 
 from boto3.resources.action import Action
-from boto3.resources.base import ResourceModel
+from boto3.resources.model import ResponseResource
 
 
 def document_model_driven_resource_method(
@@ -29,8 +30,8 @@ def document_model_driven_resource_method(
     resource_action_model: Action,
     method_description: Optional[str] = None,
     example_prefix: Optional[str] = None,
-    include_input: Optional[Dict[str, Any]] = None,
-    include_output: Optional[Dict[str, Any]] = None,
+    include_input: Optional[List[DocumentedShape]] = None,
+    include_output: Optional[List[DocumentedShape]] = None,
     exclude_input: Optional[List[Any]] = None,
     exclude_output: Optional[List[Any]] = None,
     document_output: bool = True,
@@ -80,7 +81,7 @@ def document_model_driven_resource_method(
         new_return_section.style.new_line()
 
 
-def _method_returns_resource_list(resource: ResourceModel) -> bool:
+def _method_returns_resource_list(resource: ResponseResource) -> bool:
     for identifier in resource.identifiers:
         if identifier.path and '[]' in identifier.path:
             return True

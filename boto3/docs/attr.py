@@ -11,16 +11,20 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 from botocore.docs.params import ResponseParamsDocumenter
+from botocore.docs.bcdoc.restdoc import DocumentStructure
+from botocore.hooks import BaseEventHooks
 
 from boto3.docs.utils import get_identifier_description
+from boto3.resources.model import ResourceModel, Identifier
+from boto3.resources.action import Action
 
 
 class ResourceShapeDocumenter(ResponseParamsDocumenter):
     EVENT_NAME = 'resource-shape'
 
 
-def document_attribute(section, service_name, resource_name, attr_name,
-                       event_emitter, attr_model, include_signature=True):
+def document_attribute(section: DocumentStructure, service_name: str, resource_name: str, attr_name: str,
+                       event_emitter: BaseEventHooks, attr_model: ResourceModel, include_signature: bool=True) -> None:
     if include_signature:
         section.style.start_sphinx_py_attr(attr_name)
     # Note that an attribute may have one, may have many, or may have no
@@ -34,8 +38,8 @@ def document_attribute(section, service_name, resource_name, attr_name,
             shape=attr_model)
 
 
-def document_identifier(section, resource_name, identifier_model,
-                        include_signature=True):
+def document_identifier(section: DocumentStructure, resource_name: str, identifier_model: Identifier,
+                        include_signature: bool=True) -> None:
     if include_signature:
         section.style.start_sphinx_py_attr(identifier_model.name)
     description = get_identifier_description(
@@ -44,7 +48,7 @@ def document_identifier(section, resource_name, identifier_model,
     section.write(description)
 
 
-def document_reference(section, reference_model, include_signature=True):
+def document_reference(section: DocumentStructure, reference_model: Action, include_signature: bool) -> None:
     if include_signature:
         section.style.start_sphinx_py_attr(reference_model.name)
     reference_type = '(:py:class:`%s`) ' % reference_model.resource.type

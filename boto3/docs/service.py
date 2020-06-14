@@ -88,6 +88,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
         Boto3ClientDocumenter(self._client, examples).document_client(section)
 
     def _document_service_resource(self, section: DocumentStructure) -> None:
+        assert self._service_resource
         ServiceResourceDocumenter(
             self._service_resource, self._session).document_resource(
                 section)
@@ -98,6 +99,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
         json_resource_model = loader.load_service_model(
             self._service_name, 'resources-1')
         assert self._service_resource
+        assert self._service_resource.meta.client
         service_model = self._service_resource.meta.client.meta.service_model
         for resource_name in json_resource_model['resources']:
             resource_model = json_resource_model['resources'][resource_name]
@@ -113,11 +115,13 @@ class ServiceDocumenter(BaseServiceDocumenter):
                         service_waiter_model=None
                     )
                 )
+            assert resource_cls.meta.resource_model
             identifiers = resource_cls.meta.resource_model.identifiers
             args = []
             for _ in identifiers:
                 args.append(temp_identifier_value)
             resource = resource_cls(*args, client=self._client)
+            assert resource.meta.resource_model
             ResourceDocumenter(
                 resource, self._session).document_resource(
                     section.add_new_section(resource.meta.resource_model.name))
