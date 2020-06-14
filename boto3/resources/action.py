@@ -131,7 +131,7 @@ class BatchAction(ServiceAction):
     """
 
     def __call__(
-        self, parent: ResourceCollection, *args: Any, **kwargs: Any
+        self, parent: ServiceResource, *args: Any, **kwargs: Any
     ) -> List[Dict[str, Any]]:
         """
         Perform the batch action's operation on every page of results
@@ -152,7 +152,7 @@ class BatchAction(ServiceAction):
         # Unlike the simple action above, a batch action must operate
         # on batches (or pages) of items. So we get each page, construct
         # the necessary parameters and call the batch operation.
-        for page in parent.pages():
+        for page in parent.pages():  # type: ignore
             params: Dict[str, Any] = {}
             for index, resource in enumerate(page):
                 # There is no public interface to get a service name
