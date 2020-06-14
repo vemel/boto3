@@ -10,18 +10,21 @@
 # distributed on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from tests import unittest
-
 import mock
-from s3transfer.manager import TransferManager
 from s3transfer.futures import NonThreadedExecutor
+from s3transfer.manager import TransferManager
 
-from boto3.exceptions import RetriesExceededError
-from boto3.exceptions import S3UploadFailedError
-from boto3.s3.transfer import create_transfer_manager
-from boto3.s3.transfer import S3Transfer
-from boto3.s3.transfer import OSUtils, TransferConfig, ProgressCallbackInvoker
-from boto3.s3.transfer import ClientError, S3TransferRetriesExceededError
+from boto3.exceptions import RetriesExceededError, S3UploadFailedError
+from boto3.s3.transfer import (
+    ClientError,
+    OSUtils,
+    ProgressCallbackInvoker,
+    S3Transfer,
+    S3TransferRetriesExceededError,
+    TransferConfig,
+    create_transfer_manager,
+)
+from tests import unittest
 
 
 class TestCreateTransferManager(unittest.TestCase):
@@ -29,29 +32,23 @@ class TestCreateTransferManager(unittest.TestCase):
         client = object()
         config = TransferConfig()
         osutil = OSUtils()
-        with mock.patch('boto3.s3.transfer.TransferManager') as manager:
+        with mock.patch("boto3.s3.transfer.TransferManager") as manager:
             create_transfer_manager(client, config, osutil)
-            self.assertEqual(
-                manager.call_args,
-                mock.call(client, config, osutil, None)
-            )
+            self.assertEqual(manager.call_args, mock.call(client, config, osutil, None))
 
     def test_create_transfer_manager_with_no_threads(self):
         client = object()
         config = TransferConfig()
         config.use_threads = False
-        with mock.patch(
-                'boto3.s3.transfer.TransferManager') as manager:
+        with mock.patch("boto3.s3.transfer.TransferManager") as manager:
             create_transfer_manager(client, config)
             self.assertEqual(
-                manager.call_args,
-                mock.call(client, config, None, NonThreadedExecutor)
+                manager.call_args, mock.call(client, config, None, NonThreadedExecutor)
             )
 
 
 class TestTransferConfig(unittest.TestCase):
-    def assert_value_of_actual_and_alias(self, config, actual, alias,
-                                         ref_value):
+    def assert_value_of_actual_and_alias(self, config, actual, alias, ref_value):
         # Ensure that the name set in the underlying TransferConfig (i.e.
         # the actual) is the correct value.
         self.assertEqual(getattr(config, actual), ref_value)
@@ -62,7 +59,8 @@ class TestTransferConfig(unittest.TestCase):
         ref_value = 10
         config = TransferConfig(max_concurrency=ref_value)
         self.assert_value_of_actual_and_alias(
-            config, 'max_request_concurrency', 'max_concurrency', ref_value)
+            config, "max_request_concurrency", "max_concurrency", ref_value
+        )
 
         # Set a new value using the alias
         new_value = 15
@@ -70,13 +68,15 @@ class TestTransferConfig(unittest.TestCase):
         # Make sure it sets the value for both the alias and the actual
         # value that will be used in the TransferManager
         self.assert_value_of_actual_and_alias(
-            config, 'max_request_concurrency', 'max_concurrency', new_value)
+            config, "max_request_concurrency", "max_concurrency", new_value
+        )
 
     def test_alias_max_io_queue(self):
         ref_value = 10
         config = TransferConfig(max_io_queue=ref_value)
         self.assert_value_of_actual_and_alias(
-            config, 'max_io_queue_size', 'max_io_queue', ref_value)
+            config, "max_io_queue_size", "max_io_queue", ref_value
+        )
 
         # Set a new value using the alias
         new_value = 15
@@ -84,14 +84,15 @@ class TestTransferConfig(unittest.TestCase):
         # Make sure it sets the value for both the alias and the actual
         # value that will be used in the TransferManager
         self.assert_value_of_actual_and_alias(
-            config, 'max_io_queue_size', 'max_io_queue', new_value)
+            config, "max_io_queue_size", "max_io_queue", new_value
+        )
 
 
 class TestProgressCallbackInvoker(unittest.TestCase):
     def test_on_progress(self):
         callback = mock.Mock()
         subscriber = ProgressCallbackInvoker(callback)
-        subscriber.on_progress(bytes_transferred=1)
+        subscriber.on_progress(object(), bytes_transferred=1)
         callback.assert_called_with(1)
 
 
@@ -111,51 +112,51 @@ class TestS3Transfer(unittest.TestCase):
         self.assertIsInstance(subscriber, ProgressCallbackInvoker)
         # Make sure that the on_progress method() calls out to the wrapped
         # callback by actually invoking it.
-        subscriber.on_progress(bytes_transferred=1)
+        subscriber.on_progress(object(), bytes_transferred=1)
         self.callback.assert_called_with(1)
 
     def test_upload_file(self):
-        extra_args = {'ACL': 'public-read'}
-        self.transfer.upload_file('smallfile', 'bucket', 'key',
-                                  extra_args=extra_args)
+        extra_args = {"ACL": "public-read"}
+        self.transfer.upload_file("smallfile", "bucket", "key", extra_args=extra_args)
         self.manager.upload.assert_called_with(
-            'smallfile', 'bucket', 'key', extra_args, [])
+            "smallfile", "bucket", "key", extra_args, []
+        )
 
     def test_download_file(self):
         extra_args = {
-            'SSECustomerKey': 'foo',
-            'SSECustomerAlgorithm': 'AES256',
+            "SSECustomerKey": "foo",
+            "SSECustomerAlgorithm": "AES256",
         }
-        self.transfer.download_file('bucket', 'key', '/tmp/smallfile',
-                                    extra_args=extra_args)
+        self.transfer.download_file(
+            "bucket", "key", "/tmp/smallfile", extra_args=extra_args
+        )
         self.manager.download.assert_called_with(
-            'bucket', 'key', '/tmp/smallfile', extra_args, [])
+            "bucket", "key", "/tmp/smallfile", extra_args, []
+        )
 
     def test_upload_wraps_callback(self):
-        self.transfer.upload_file(
-            'smallfile', 'bucket', 'key', callback=self.callback)
-        self.assert_callback_wrapped_in_subscriber(
-            self.manager.upload.call_args)
+        self.transfer.upload_file("smallfile", "bucket", "key", callback=self.callback)
+        self.assert_callback_wrapped_in_subscriber(self.manager.upload.call_args)
 
     def test_download_wraps_callback(self):
         self.transfer.download_file(
-            'bucket', 'key', '/tmp/smallfile', callback=self.callback)
-        self.assert_callback_wrapped_in_subscriber(
-            self.manager.download.call_args)
+            "bucket", "key", "/tmp/smallfile", callback=self.callback
+        )
+        self.assert_callback_wrapped_in_subscriber(self.manager.download.call_args)
 
     def test_propogation_of_retry_error(self):
         future = mock.Mock()
         future.result.side_effect = S3TransferRetriesExceededError(Exception())
         self.manager.download.return_value = future
         with self.assertRaises(RetriesExceededError):
-            self.transfer.download_file('bucket', 'key', '/tmp/smallfile')
+            self.transfer.download_file("bucket", "key", "/tmp/smallfile")
 
     def test_propogation_s3_upload_failed_error(self):
         future = mock.Mock()
-        future.result.side_effect = ClientError({'Error': {}}, 'op_name')
+        future.result.side_effect = ClientError({"Error": {}}, "op_name")
         self.manager.upload.return_value = future
         with self.assertRaises(S3UploadFailedError):
-            self.transfer.upload_file('smallfile', 'bucket', 'key')
+            self.transfer.upload_file("smallfile", "bucket", "key")
 
     def test_can_create_with_just_client(self):
         transfer = S3Transfer(client=mock.Mock())
@@ -163,7 +164,8 @@ class TestS3Transfer(unittest.TestCase):
 
     def test_can_create_with_extra_configurations(self):
         transfer = S3Transfer(
-            client=mock.Mock(), config=TransferConfig(), osutil=OSUtils())
+            client=mock.Mock(), config=TransferConfig(), osutil=OSUtils()
+        )
         self.assertIsInstance(transfer, S3Transfer)
 
     def test_client_or_manager_is_required(self):
@@ -185,12 +187,12 @@ class TestS3Transfer(unittest.TestCase):
     def test_upload_requires_string_filename(self):
         transfer = S3Transfer(client=mock.Mock())
         with self.assertRaises(ValueError):
-            transfer.upload_file(filename=object(), bucket='foo', key='bar')
+            transfer.upload_file(filename=object(), bucket="foo", key="bar")
 
     def test_download_requires_string_filename(self):
         transfer = S3Transfer(client=mock.Mock())
         with self.assertRaises(ValueError):
-            transfer.download_file(bucket='foo', key='bar', filename=object())
+            transfer.download_file(bucket="foo", key="bar", filename=object())
 
     def test_context_manager(self):
         manager = mock.Mock()
@@ -199,8 +201,7 @@ class TestS3Transfer(unittest.TestCase):
             pass
         # The underlying transfer manager should have had its __exit__
         # called as well.
-        self.assertEqual(
-            manager.__exit__.call_args, mock.call(None, None, None))
+        self.assertEqual(manager.__exit__.call_args, mock.call(None, None, None))
 
     def test_context_manager_with_errors(self):
         manager = mock.Mock()
@@ -213,4 +214,5 @@ class TestS3Transfer(unittest.TestCase):
         # called as well and pass on the error as well.
         self.assertEqual(
             manager.__exit__.call_args,
-            mock.call(type(raised_exception), raised_exception, mock.ANY))
+            mock.call(type(raised_exception), raised_exception, mock.ANY),
+        )

@@ -10,21 +10,25 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from botocore.docs.docstring import LazyLoadedDocstring, DocumentStructure
+from botocore.docs.docstring import LazyLoadedDocstring
 
-from boto3.docs.action import document_action
-from boto3.docs.action import document_load_reload_action
+from boto3.docs.action import document_action, document_load_reload_action
+from boto3.docs.attr import document_attribute, document_identifier, document_reference
+from boto3.docs.collection import (
+    document_batch_action,
+    document_collection_method,
+    document_collection_object,
+)
 from boto3.docs.subresource import document_sub_resource
-from boto3.docs.attr import document_attribute
-from boto3.docs.attr import document_identifier
-from boto3.docs.attr import document_reference
-from boto3.docs.collection import document_collection_object
-from boto3.docs.collection import document_collection_method
-from boto3.docs.collection import document_batch_action
 from boto3.docs.waiter import document_resource_waiter
-from boto3.resources.action import Action
+
+# pylint: disable=cyclic-import
+if TYPE_CHECKING:
+    from boto3.resources.action import Action
+else:
+    Action = object()
 
 
 class ActionDocstring(LazyLoadedDocstring):
@@ -53,8 +57,8 @@ class IdentifierDocstring(LazyLoadedDocstring):
 
 
 class ReferenceDocstring(LazyLoadedDocstring):
-    def _write_docstring(self, section: DocumentStructure, reference_model: Action, include_signature: bool=True) -> None:
-        document_reference(section=section, reference_model=reference_model, include_signature=include_signature)
+    def _write_docstring(self, *args: Any, **kwargs: Any) -> None:
+        document_reference(*args, **kwargs)
 
 
 class CollectionDocstring(LazyLoadedDocstring):

@@ -10,16 +10,21 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from typing import Optional, List, Dict, Any
+from typing import TYPE_CHECKING, Any, List, Optional
 
-from botocore.docs.method import document_model_driven_method
 from botocore.docs.bcdoc.restdoc import DocumentStructure
-from botocore.hooks import BaseEventHooks
+from botocore.docs.method import document_model_driven_method
 from botocore.docs.utils import DocumentedShape
+from botocore.hooks import BaseEventHooks
 from botocore.model import OperationModel
 
-from boto3.resources.action import Action
-from boto3.resources.model import ResponseResource
+# pylint: disable=cyclic-import
+if TYPE_CHECKING:
+    from boto3.resources.action import Action
+    from boto3.resources.model import ResponseResource
+else:
+    Action = object()
+    ResponseResource = object()
 
 
 def document_model_driven_resource_method(
@@ -39,7 +44,8 @@ def document_model_driven_resource_method(
 ) -> None:
 
     document_model_driven_method(
-        section=section, method_name=method_name,
+        section=section,
+        method_name=method_name,
         operation_model=operation_model,
         event_emitter=event_emitter,
         method_description=method_description,
@@ -49,41 +55,39 @@ def document_model_driven_resource_method(
         exclude_input=exclude_input,
         exclude_output=exclude_output,
         document_output=document_output,
-        include_signature=include_signature
+        include_signature=include_signature,
     )
 
     # If this action returns a resource modify the return example to
     # appropriately reflect that.
     if resource_action_model.has_resource():
-        if 'return' in section.available_sections:
-            section.delete_section('return')
+        if "return" in section.available_sections:
+            section.delete_section("return")
         resource_type = resource_action_model.resource.type
 
-        new_return_section = section.add_new_section('return')
-        return_resource_type = '%s.%s' % (
+        new_return_section = section.add_new_section("return")
+        return_resource_type = "%s.%s" % (
             operation_model.service_model.service_name,
-            resource_type)
+            resource_type,
+        )
 
-        return_type = ':py:class:`%s`' % return_resource_type
-        return_description = '%s resource' % (resource_type)
+        return_type = ":py:class:`%s`" % return_resource_type
+        return_description = "%s resource" % (resource_type)
 
         if _method_returns_resource_list(resource_action_model.resource):
-            return_type = 'list(%s)' % return_type
-            return_description = 'A list of %s resources' % (
-                resource_type)
+            return_type = "list(%s)" % return_type
+            return_description = "A list of %s resources" % (resource_type)
 
         new_return_section.style.new_line()
-        new_return_section.write(
-            ':rtype: %s' % return_type)
+        new_return_section.write(":rtype: %s" % return_type)
         new_return_section.style.new_line()
-        new_return_section.write(
-            ':returns: %s' % return_description)
+        new_return_section.write(":returns: %s" % return_description)
         new_return_section.style.new_line()
 
 
 def _method_returns_resource_list(resource: ResponseResource) -> bool:
     for identifier in resource.identifiers:
-        if identifier.path and '[]' in identifier.path:
+        if identifier.path and "[]" in identifier.path:
             return True
 
     return False

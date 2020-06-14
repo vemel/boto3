@@ -11,12 +11,11 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import sys
-from collections import namedtuple
 from typing import Any, Callable, Dict
 
+from botocore.model import ServiceModel
 from botocore.session import Session as BotocoreSession
 from botocore.waiter import Waiter, WaiterModel
-from botocore.model import ServiceModel
 
 
 class ServiceContext:
@@ -38,6 +37,7 @@ class ServiceContext:
         shapes for a service. It is equivalient of loading a
         ``resource-1.json`` and retrieving the value at the key "resources".
     """
+
     def __init__(
         self,
         service_name: str,
@@ -61,11 +61,11 @@ def import_module(name: str) -> Any:
     return sys.modules[name]
 
 
-def lazy_call(full_name: str, **kwargs: Any) -> Callable[... , Any]:
+def lazy_call(full_name: str, **kwargs: Any) -> Callable[..., Any]:
     parent_kwargs = kwargs
 
     def _handler(**kwargs: Any) -> Any:
-        module, function_name = full_name.rsplit('.', 1)
+        module, function_name = full_name.rsplit(".", 1)
         module = import_module(module)
         kwargs.update(parent_kwargs)
         return getattr(module, function_name)(**kwargs)
@@ -77,12 +77,13 @@ def inject_attribute(class_attributes: Dict[str, Any], name: str, value: Any) ->
     if name in class_attributes:
         raise RuntimeError(
             'Cannot inject class attribute "%s", attribute '
-            'already exists in class dict.' % name)
-    else:
-        class_attributes[name] = value
+            "already exists in class dict." % name
+        )
+
+    class_attributes[name] = value
 
 
-class LazyLoadedWaiterModel(object):
+class LazyLoadedWaiterModel:
     """A lazily loaded waiter model
 
     This does not load the service waiter model until an attempt is made
@@ -91,11 +92,15 @@ class LazyLoadedWaiterModel(object):
     the waiter-2.json until it is accessed through a ``get_waiter`` call
     when the docstring is generated/accessed.
     """
-    def __init__(self, bc_session: BotocoreSession, service_name: str, api_version: str) -> None:
+
+    def __init__(
+        self, bc_session: BotocoreSession, service_name: str, api_version: str
+    ) -> None:
         self._session = bc_session
         self._service_name = service_name
         self._api_version = api_version
 
     def get_waiter(self, waiter_name: str) -> Waiter:
         return self._session.get_waiter_model(
-            self._service_name, self._api_version).get_waiter(waiter_name)
+            self._service_name, self._api_version
+        ).get_waiter(waiter_name)

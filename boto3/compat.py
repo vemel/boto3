@@ -10,10 +10,10 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-import sys
-import os
 import errno
+import os
 import socket
+import sys
 
 from botocore.vendored import six
 
@@ -26,20 +26,21 @@ if six.PY3:
 else:
     SOCKET_ERROR = socket.error
 
-import collections.abc as collections_abc
 
+if sys.platform.startswith("win"):
 
-if sys.platform.startswith('win'):
     def rename_file(current_filename: str, new_filename: str) -> None:
         try:
             os.remove(new_filename)
         except OSError as e:
-            if not e.errno == errno.ENOENT:
+            if e.errno != errno.ENOENT:
                 # We only want to a ignore trying to remove
                 # a file that does not exist.  If it fails
                 # for any other reason we should be propagating
                 # that exception.
                 raise
         os.rename(current_filename, new_filename)
+
+
 else:
     rename_file = os.rename

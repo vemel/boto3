@@ -19,6 +19,7 @@ from botocore.docs.bcdoc.restdoc import DocumentStructure
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import ResourceModel
 
+
 class BotocoreSignatureMixin:
     @classmethod
     def _add_custom_method(cls, section: DocumentStructure, name: str, method: Any) -> None:

@@ -12,7 +12,7 @@
 # language governing permissions and limitations under the License.
 
 import re
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
 import jmespath
 from botocore import xform_name
@@ -21,8 +21,7 @@ from boto3.exceptions import ResourceLoadException
 from boto3.resources.base import ServiceResource
 from boto3.resources.model import DefinitionWithParams
 
-
-INDEX_RE = re.compile(r'\[(.*)\]$')
+INDEX_RE = re.compile(r"\[(.*)\]$")
 
 
 def get_data_member(parent: ServiceResource, path: str) -> Any:
@@ -46,8 +45,8 @@ def get_data_member(parent: ServiceResource, path: str) -> Any:
             parent.load()
         else:
             raise ResourceLoadException(
-                '{0} has no load method!'.format(parent.__class__.__name__))
-
+                "{0} has no load method!".format(parent.__class__.__name__)
+            )
 
     return jmespath.search(path, parent.meta.data)
 
@@ -85,29 +84,30 @@ def create_request_parameters(
         source = param.source
         target = param.target
 
-        if source == 'identifier':
+        if source == "identifier":
             # Resource identifier, e.g. queue.url
             value = getattr(parent, xform_name(param.name))
-        elif source == 'data':
+        elif source == "data":
             # If this is a data member then it may incur a load
             # action before returning the value.
             value = get_data_member(parent, param.path or "<empty>")
-        elif source in ['string', 'integer', 'boolean']:
+        elif source in ["string", "integer", "boolean"]:
             # These are hard-coded values in the definition
             value = param.value
-        elif source == 'input':
+        elif source == "input":
             # This is provided by the user, so ignore it here
             continue
         else:
-            raise NotImplementedError(
-                'Unsupported source type: {0}'.format(source))
+            raise NotImplementedError("Unsupported source type: {0}".format(source))
 
         build_param_structure(params, target, value, index)
 
     return params
 
 
-def build_param_structure(params: Dict[str, Any], target: str, value: Any, index: Optional[int]=None) -> Any:
+def build_param_structure(
+    params: Dict[str, Any], target: str, value: Any, index: Optional[int] = None
+) -> Any:
     """
     This method provides a basic reverse JMESPath implementation that
     lets you go from a JMESPath-like string to a possibly deeply nested
@@ -124,7 +124,7 @@ def build_param_structure(params: Dict[str, Any], target: str, value: Any, index
 
     """
     pos = params
-    parts = target.split('.')
+    parts = target.split(".")
 
     # First, split into parts like 'foo', 'bar[0]', 'baz' and process
     # each piece. It can either be a list or a dict, depending on if
@@ -137,12 +137,12 @@ def build_param_structure(params: Dict[str, Any], target: str, value: Any, index
         result = INDEX_RE.search(part)
         if result:
             if result.group(1):
-                if result.group(1) == '*':
+                if result.group(1) == "*":
                     part = part[:-3]
                 else:
                     # We have an explicit index
                     index = int(result.group(1))
-                    part = part[:-len(str(index) + '[]')]
+                    part = part[: -len(str(index) + "[]")]
             else:
                 # Index will be set after we know the proper part
                 # name and that it's a list instance.

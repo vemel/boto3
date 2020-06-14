@@ -12,33 +12,40 @@
 # language governing permissions and limitations under the License.
 
 import logging
-from typing import Any, Optional
-
-from boto3.session import Session
-from boto3.resources.base import ServiceResource
+from typing import TYPE_CHECKING, Any, Optional
 
 from botocore.client import BaseClient
 
+from boto3.session import Session
 
-__author__ = 'Amazon Web Services'
-__version__ = '1.14.2'
+# pylint: disable=cyclic-import
+if TYPE_CHECKING:
+    from boto3.resources.base import ServiceResource
+else:
+    ServiceResource = object()
+
+__author__ = "Amazon Web Services"
+__version__ = "1.14.2"
 
 
 # The default Boto3 session; autoloaded when needed.
 DEFAULT_SESSION: Optional[Session] = None
 
 
-def setup_default_session(**kwargs: Any) -> None:
+def setup_default_session(**kwargs: Any) -> Session:
     """
     Set up a default session, passing through any parameters to the session
     constructor. There is no need to call this unless you wish to pass custom
     parameters, because a default session will be created for you.
     """
-    global DEFAULT_SESSION
-    DEFAULT_SESSION = Session(**kwargs)
+    result = Session(**kwargs)
+    globals()["DEFAULT_SESSION"] = result
+    return result
 
 
-def set_stream_logger(name: str = 'boto3', level: int = logging.DEBUG, format_string: Optional[str] = None) -> None:
+def set_stream_logger(
+    name: str = "boto3", level: int = logging.DEBUG, format_string: Optional[str] = None
+) -> None:
     """
     Add a stream handler for the given name and level to the logging module.
     By default, this logs all boto3 messages to ``stdout``.
@@ -80,11 +87,10 @@ def _get_default_session() -> Session:
     :rtype: :py:class:`~boto3.session.Session`
     :return: The default session
     """
-    if DEFAULT_SESSION is None:
-        setup_default_session()
+    if DEFAULT_SESSION is not None:
+        return DEFAULT_SESSION
 
-    assert DEFAULT_SESSION
-    return DEFAULT_SESSION
+    return setup_default_session()
 
 
 def client(*args: Any, **kwargs: Any) -> BaseClient:
@@ -112,4 +118,4 @@ class NullHandler(logging.Handler):
         pass
 
 
-logging.getLogger('boto3').addHandler(NullHandler())
+logging.getLogger("boto3").addHandler(NullHandler())

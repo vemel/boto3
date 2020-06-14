@@ -12,32 +12,31 @@
 # language governing permissions and limitations under the License.
 
 import logging
-from typing import Optional, Union, Any, List, Dict, Callable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 from botocore import xform_name
 from botocore.hooks import BaseEventHooks
-from botocore.client import BaseClient
 
+from boto3.docs.docstring import ActionDocstring
+from boto3.resources.base import ServiceResource
+from boto3.resources.model import Action, Waiter
 from boto3.resources.params import create_request_parameters
 from boto3.resources.response import RawHandler, ResourceHandler
-from boto3.resources.model import Action, Waiter
-from boto3.docs.docstring import ActionDocstring
-from boto3.utils import inject_attribute, ServiceContext
-from boto3.resources.base import ServiceResource
+from boto3.utils import ServiceContext, inject_attribute
 
+# pylint: disable=cyclic-import
 if TYPE_CHECKING:
     from boto3.resources.factory import ResourceFactory
     from boto3.resources.collection import ResourceCollection
 else:
-    ResourceFactory = object
-    ResourceCollection = object
-
+    ResourceFactory = Any
+    ResourceCollection = Any
 
 
 logger = logging.getLogger(__name__)
 
 
-class ServiceAction(object):
+class ServiceAction:
     """
     A class representing a callable action on a resource, for example
     ``sqs.get_queue_by_name(...)`` or ``s3.Bucket('foo').delete()``.
@@ -54,6 +53,7 @@ class ServiceAction(object):
     :type service_context: :py:class:`~boto3.utils.ServiceContext`
     :param service_context: Context about the AWS service
     """
+
     def __init__(
         self,
         action_model: Action,
@@ -65,7 +65,9 @@ class ServiceAction(object):
 
         # In the simplest case we just return the response, but if a
         # resource is defined, then we must create these before returning.
-        resource_response_model = action_model.resource if action_model.has_resource() else None
+        resource_response_model = (
+            action_model.resource if action_model.has_resource() else None
+        )
         if resource_response_model and action_model.request:
             assert factory
             assert service_context
@@ -74,7 +76,7 @@ class ServiceAction(object):
                 factory=factory,
                 resource_model=resource_response_model,
                 service_context=service_context,
-                operation_name=action_model.request.operation
+                operation_name=action_model.request.operation,
             )
         else:
             self._response_handler = RawHandler(action_model.path or "")
@@ -98,12 +100,13 @@ class ServiceAction(object):
         params = create_request_parameters(parent, self._action_model.request)
         params.update(kwargs)
 
-        logger.debug('Calling %s:%s with %r', parent.meta.service_name,
-                    operation_name, params)
+        logger.debug(
+            "Calling %s:%s with %r", parent.meta.service_name, operation_name, params
+        )
 
         response = getattr(parent.meta.client, operation_name)(*args, **params)
 
-        logger.debug('Response: %r', response)
+        logger.debug("Response: %r", response)
 
         return self._response_handler(parent, params, response)
 
@@ -126,7 +129,10 @@ class BatchAction(ServiceAction):
     :type service_context: :py:class:`~boto3.utils.ServiceContext`
     :param service_context: Context about the AWS service
     """
-    def __call__(self, parent: ServiceResource, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
+
+    def __call__(
+        self, parent: ResourceCollection, *args: Any, **kwargs: Any
+    ) -> List[Dict[str, Any]]:
         """
         Perform the batch action's operation on every page of results
         from the collection.
@@ -146,7 +152,6 @@ class BatchAction(ServiceAction):
         # Unlike the simple action above, a batch action must operate
         # on batches (or pages) of items. So we get each page, construct
         # the necessary parameters and call the batch operation.
-        assert isinstance(parent, ResourceCollection)
         for page in parent.pages():
             params: Dict[str, Any] = {}
             for index, resource in enumerate(page):
@@ -159,8 +164,8 @@ class BatchAction(ServiceAction):
                     client = resource.meta.client
 
                 create_request_parameters(
-                    resource, self._action_model.request,
-                    params=params, index=index)
+                    resource, self._action_model.request, params=params, index=index
+                )
 
             if not params:
                 # There are no items, no need to make a call.
@@ -168,20 +173,18 @@ class BatchAction(ServiceAction):
 
             params.update(kwargs)
 
-            logger.debug('Calling %s:%s with %r',
-                        service_name, operation_name, params)
+            logger.debug("Calling %s:%s with %r", service_name, operation_name, params)
 
             response = getattr(client, operation_name)(*args, **params)
 
-            logger.debug('Response: %r', response)
+            logger.debug("Response: %r", response)
 
-            responses.append(
-                self._response_handler(parent, params, response))
+            responses.append(self._response_handler(parent, params, response))
 
         return responses
 
 
-class WaiterAction(object):
+class WaiterAction:
     """
     A class representing a callable waiter action on a resource, for example
     ``s3.Bucket('foo').wait_until_bucket_exists()``.
@@ -195,6 +198,7 @@ class WaiterAction(object):
                                  resource. It usually begins with a
                                  ``wait_until_``
     """
+
     def __init__(self, waiter_model: Waiter, waiter_resource_name: str) -> None:
         self._waiter_model = waiter_model
         self._waiter_resource_name = waiter_resource_name
@@ -215,20 +219,24 @@ class WaiterAction(object):
         params = create_request_parameters(parent, self._waiter_model)
         params.update(kwargs)
 
-        logger.debug('Calling %s:%s with %r',
-                    parent.meta.service_name,
-                    self._waiter_resource_name, params)
+        logger.debug(
+            "Calling %s:%s with %r",
+            parent.meta.service_name,
+            self._waiter_resource_name,
+            params,
+        )
 
         client = parent.meta.client
         assert client
         waiter = client.get_waiter(client_waiter_name)
         response = waiter.wait(**params)
 
-        logger.debug('Response: %r', response)
+        logger.debug("Response: %r", response)
 
 
-class CustomModeledAction(object):
+class CustomModeledAction:
     """A custom, modeled action to inject into a resource."""
+
     def __init__(
         self,
         action_name: str,
@@ -258,7 +266,13 @@ class CustomModeledAction(object):
         self.function = function
         self.emitter = event_emitter
 
-    def inject(self, class_attributes: Dict[str, Any], service_context: ServiceContext, event_name: str, **kwargs: Any) -> None:
+    def inject(
+        self,
+        class_attributes: Dict[str, Any],
+        service_context: ServiceContext,
+        event_name: str,
+        **_kwargs: Any
+    ) -> None:
         resource_name = event_name.rsplit(".")[-1]
         action = Action(self.name, self.model, {})
         self.function.__name__ = self.name
@@ -267,6 +281,6 @@ class CustomModeledAction(object):
             event_emitter=self.emitter,
             action_model=action,
             service_model=service_context.service_model,
-            include_signature=False
+            include_signature=False,
         )
         inject_attribute(class_attributes, self.name, self.function)

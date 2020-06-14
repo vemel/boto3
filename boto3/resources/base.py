@@ -12,28 +12,34 @@
 # language governing permissions and limitations under the License.
 
 import logging
-from typing import Optional, List, Dict, Any
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-import boto3
-from boto3.resources.model import ResourceModel
-from boto3.exceptions import ResourceLoadException
 from botocore.client import BaseClient
 
+import boto3
+from boto3.exceptions import ResourceLoadException
+
+# pylint: disable=cyclic-import
+if TYPE_CHECKING:
+    from boto3.resources.model import ResourceModel
+else:
+    ResourceModel = Any
 
 logger = logging.getLogger(__name__)
 
 
-class ResourceMeta(object):
+class ResourceMeta:
     """
     An object containing metadata about a resource.
     """
+
     def __init__(
         self,
         service_name: str,
         identifiers: Optional[List[str]] = None,
         client: Optional[BaseClient] = None,
         data: Optional[Dict[str, Any]] = None,
-        resource_model: Optional[ResourceModel] = None
+        resource_model: Optional[ResourceModel] = None,
     ) -> None:
         #: (``string``) The service name, e.g. 's3'
         self.service_name = service_name
@@ -52,8 +58,9 @@ class ResourceMeta(object):
         self.resource_model = resource_model
 
     def __repr__(self) -> str:
-        return 'ResourceMeta(\'{0}\', identifiers={1})'.format(
-            self.service_name, self.identifiers)
+        return "ResourceMeta('{0}', identifiers={1})".format(
+            self.service_name, self.identifiers
+        )
 
     def __eq__(self, other: Any) -> bool:
         # Two metas are equal if their components are all equal
@@ -67,7 +74,7 @@ class ResourceMeta(object):
         Create a copy of this metadata object.
         """
         params = self.__dict__.copy()
-        service_name = params.pop('service_name')
+        service_name = params.pop("service_name")
         return ResourceMeta(service_name, **params)
 
 
@@ -101,42 +108,39 @@ class ServiceResource:
         self.meta = self.meta.copy()
 
         # Create a default client if none was passed
-        if kwargs.get('client') is not None:
-            self.meta.client = kwargs.get('client')
+        if kwargs.get("client") is not None:
+            self.meta.client = kwargs.get("client")
         else:
             self.meta.client = boto3.client(self.meta.service_name)
 
         # Allow setting identifiers as positional arguments in the order
         # in which they were defined in the ResourceJSON.
         for i, value in enumerate(args):
-            setattr(self, '_' + self.meta.identifiers[i], value)
+            setattr(self, "_" + self.meta.identifiers[i], value)
 
         # Allow setting identifiers via keyword arguments. Here we need
         # extra logic to ignore other keyword arguments like ``client``.
         for name, value in kwargs.items():
-            if name == 'client':
+            if name == "client":
                 continue
 
             if name not in self.meta.identifiers:
-                raise ValueError('Unknown keyword argument: {0}'.format(name))
+                raise ValueError("Unknown keyword argument: {0}".format(name))
 
-            setattr(self, '_' + name, value)
+            setattr(self, "_" + name, value)
 
         # Validate that all identifiers have been set.
         for identifier in self.meta.identifiers:
             if getattr(self, identifier) is None:
-                raise ValueError(
-                    'Required parameter {0} not set'.format(identifier))
+                raise ValueError("Required parameter {0} not set".format(identifier))
 
     def __repr__(self) -> str:
         identifiers = []
         for identifier in self.meta.identifiers:
-            identifiers.append('{0}={1}'.format(
-                identifier, repr(getattr(self, identifier))))
-        return "{0}({1})".format(
-            self.__class__.__name__,
-            ', '.join(identifiers),
-        )
+            identifiers.append(
+                "{0}={1}".format(identifier, repr(getattr(self, identifier)))
+            )
+        return "{0}({1})".format(self.__class__.__name__, ", ".join(identifiers),)
 
     def __eq__(self, other: Any) -> bool:
         # Should be instances of the same resource class
@@ -159,8 +163,8 @@ class ServiceResource:
 
     def load(self) -> None:
         raise ResourceLoadException(
-                        '{0} has no load method'.format(
-                            self.__class__.__name__))
+            "{0} has no load method".format(self.__class__.__name__)
+        )
 
     def has_load(self) -> bool:
         return self.__class__.load != ServiceResource.load

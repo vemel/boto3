@@ -13,21 +13,19 @@
 
 import logging
 from functools import partial
-from typing import Dict, Any, cast, Type, Iterable, List, Callable
+from typing import Any, Callable, Dict, Iterable, List, Type
 
-from botocore.hooks import BaseEventHooks
-from botocore.waiter import WaiterModel, Waiter
 from botocore.client import BaseClient
+from botocore.hooks import BaseEventHooks
+from botocore.waiter import Waiter, WaiterModel
 
-from boto3.resources.action import ServiceAction, WaiterAction, Action
+from boto3.docs import docstring
+from boto3.resources.action import Action, ServiceAction, WaiterAction
 from boto3.resources.base import ResourceMeta, ServiceResource
 from boto3.resources.collection import CollectionFactory, CollectionManager
-from boto3.resources.model import ResourceModel, Identifier, Collection
-from boto3.resources.response import build_identifiers, ResourceHandler
-from boto3.exceptions import ResourceLoadException
-from boto3.docs import docstring
+from boto3.resources.model import Collection, Identifier, ResourceModel
+from boto3.resources.response import ResourceHandler, build_identifiers
 from boto3.utils import ServiceContext
-
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +38,7 @@ class ResourceFactory:
     SQS resource) and another on models contained within the service (e.g. an
     SQS Queue resource).
     """
+
     def __init__(self, emitter: BaseEventHooks) -> None:
         self._collection_factory = CollectionFactory()
         self._emitter = emitter
@@ -71,28 +70,26 @@ class ResourceFactory:
         :rtype: Subclass of :py:class:`~boto3.resources.base.ServiceResource`
         :return: The service or resource class.
         """
-        logger.debug('Loading %s:%s', service_context.service_name,
-                     resource_name)
+        logger.debug("Loading %s:%s", service_context.service_name, resource_name)
 
         # Using the loaded JSON create a ResourceModel object.
         resource_model = ResourceModel(
-            resource_name, single_resource_json_definition,
-            service_context.resource_json_definitions
+            resource_name,
+            single_resource_json_definition,
+            service_context.resource_json_definitions,
         )
 
         # Do some renaming of the shape if there was a naming collision
         # that needed to be accounted for.
         shape = None
         if resource_model.shape:
-            shape = service_context.service_model.shape_for(
-                resource_model.shape)
+            shape = service_context.service_model.shape_for(resource_model.shape)
         resource_model.load_rename_map(shape)
 
         # Set some basic info
-        meta = ResourceMeta(
-            service_context.service_name, resource_model=resource_model)
+        meta = ResourceMeta(service_context.service_name, resource_model=resource_model)
         attrs = {
-            'meta': meta,
+            "meta": meta,
         }
 
         # Create and load all of attributes of the resource class based
@@ -100,54 +97,72 @@ class ResourceFactory:
 
         # Identifiers
         self._load_identifiers(
-            attrs=attrs, meta=meta, resource_name=resource_name,
-            resource_model=resource_model
+            attrs=attrs,
+            meta=meta,
+            resource_name=resource_name,
+            resource_model=resource_model,
         )
 
         # Load/Reload actions
         self._load_actions(
-            attrs=attrs, resource_name=resource_name,
-            resource_model=resource_model, service_context=service_context
+            attrs=attrs,
+            resource_name=resource_name,
+            resource_model=resource_model,
+            service_context=service_context,
         )
 
         # Attributes that get auto-loaded
         self._load_attributes(
-            attrs=attrs, meta=meta, resource_name=resource_name,
+            attrs=attrs,
+            resource_name=resource_name,
             resource_model=resource_model,
-            service_context=service_context)
+            service_context=service_context,
+        )
 
         # Collections and their corresponding methods
         self._load_collections(
-            attrs=attrs, resource_model=resource_model,
-            service_context=service_context)
+            attrs=attrs, resource_model=resource_model, service_context=service_context
+        )
 
         # References and Subresources
         self._load_has_relations(
-            attrs=attrs, resource_name=resource_name,
-            resource_model=resource_model, service_context=service_context
+            attrs=attrs,
+            resource_name=resource_name,
+            resource_model=resource_model,
+            service_context=service_context,
         )
 
         # Waiter resource actions
         self._load_waiters(
-            attrs=attrs, resource_name=resource_name,
-            resource_model=resource_model, service_context=service_context
+            attrs=attrs,
+            resource_name=resource_name,
+            resource_model=resource_model,
+            service_context=service_context,
         )
 
         # Create the name based on the requested service and resource
         cls_name = resource_name
         if service_context.service_name == resource_name:
-            cls_name = 'ServiceResource'
-        cls_name = service_context.service_name + '.' + cls_name
+            cls_name = "ServiceResource"
+        cls_name = service_context.service_name + "." + cls_name
 
         base_classes = [ServiceResource]
         if self._emitter is not None:
             self._emitter.emit(
-                'creating-resource-class.%s' % cls_name,
-                class_attributes=attrs, base_classes=base_classes,
-                service_context=service_context)
+                "creating-resource-class.%s" % cls_name,
+                class_attributes=attrs,
+                base_classes=base_classes,
+                service_context=service_context,
+            )
         return type(str(cls_name), tuple(base_classes), attrs)
 
-    def _load_identifiers(self, attrs: Dict[str, Any], meta: ResourceMeta, resource_model: ResourceModel, resource_name: str) -> None:
+    def _load_identifiers(
+        self,
+        attrs: Dict[str, Any],
+        meta: ResourceMeta,
+        resource_model: ResourceModel,
+        resource_name: str,
+    ) -> None:
         """
         Populate required identifiers. These are arguments without which
         the resource cannot be used. Identifiers become arguments for
@@ -155,29 +170,43 @@ class ResourceFactory:
         """
         for identifier in resource_model.identifiers:
             meta.identifiers.append(identifier.name)
-            attrs[identifier.name] = self._create_identifier(
-                identifier, resource_name)
+            attrs[identifier.name] = self._create_identifier(identifier, resource_name)
 
-    def _load_actions(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
-                      service_context: ServiceContext) -> None:
+    def _load_actions(
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        resource_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> None:
         """
         Actions on the resource become methods, with the ``load`` method
         being a special case which sets internal data for attributes, and
         ``reload`` is an alias for ``load``.
         """
         if resource_model.load:
-            attrs['load'] = self._create_action(
-                action_model=resource_model.load, resource_name=resource_name,
-                service_context=service_context, is_load=True)
-            attrs['reload'] = attrs['load']
+            attrs["load"] = self._create_action(
+                action_model=resource_model.load,
+                resource_name=resource_name,
+                service_context=service_context,
+                is_load=True,
+            )
+            attrs["reload"] = attrs["load"]
 
         for action in resource_model.actions:
             attrs[action.name] = self._create_action(
-                action_model=action, resource_name=resource_name,
-                service_context=service_context)
+                action_model=action,
+                resource_name=resource_name,
+                service_context=service_context,
+            )
 
-    def _load_attributes(self, attrs: Dict[str, Any], meta: ResourceMeta, resource_name: str, resource_model: ResourceModel,
-                         service_context: ServiceContext) -> None:
+    def _load_attributes(
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        resource_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> None:
         """
         Load resource attributes based on the resource shape. The shape
         name is referenced in the resource JSON, but the shape itself
@@ -187,12 +216,11 @@ class ResourceFactory:
         if not resource_model.shape:
             return
 
-        shape = service_context.service_model.shape_for(
-            resource_model.shape)
+        shape = service_context.service_model.shape_for(resource_model.shape)
 
         identifiers = dict(
-            (i.member_name, i)
-            for i in resource_model.identifiers if i.member_name)
+            (i.member_name, i) for i in resource_model.identifiers if i.member_name
+        )
         attributes = resource_model.get_attributes(shape)
         for name, (orig_name, member) in attributes.items():
             if name in identifiers:
@@ -200,18 +228,24 @@ class ResourceFactory:
                     resource_name=resource_name,
                     identifier=identifiers[name],
                     member_model=member,
-                    service_context=service_context
+                    service_context=service_context,
                 )
             else:
                 prop = self._create_autoload_property(
                     resource_name=resource_name,
-                    name=orig_name, snake_cased=name,
+                    name=orig_name,
+                    snake_cased=name,
                     member_model=member,
-                    service_context=service_context
+                    service_context=service_context,
                 )
             attrs[name] = prop
 
-    def _load_collections(self, attrs: Dict[str, Any], resource_model: ResourceModel, service_context: ServiceContext) -> None:
+    def _load_collections(
+        self,
+        attrs: Dict[str, Any],
+        resource_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> None:
         """
         Load resource collections from the model. Each collection becomes
         a :py:class:`~boto3.resources.collection.CollectionManager` instance
@@ -222,11 +256,16 @@ class ResourceFactory:
             attrs[collection_model.name] = self._create_collection(
                 resource_name=resource_model.name,
                 collection_model=collection_model,
-                service_context=service_context
+                service_context=service_context,
             )
 
-    def _load_has_relations(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
-                            service_context: ServiceContext) -> None:
+    def _load_has_relations(
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        resource_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> None:
         """
         Load related resources, which are defined via a ``has``
         relationship but conceptually come in two forms:
@@ -242,9 +281,7 @@ class ResourceFactory:
             # the data we need to create the resource, so
             # this instance becomes an attribute on the class.
             attrs[reference.name] = self._create_reference(
-                reference_model=reference,
-                resource_name=resource_name,
-                service_context=service_context
+                reference_model=reference, service_context=service_context,
             )
 
         for subresource in resource_model.subresources:
@@ -253,17 +290,19 @@ class ResourceFactory:
             attrs[subresource.name] = self._create_class_partial(
                 subresource_model=subresource,
                 resource_name=resource_name,
-                service_context=service_context
+                service_context=service_context,
             )
 
-        self._create_available_subresources_command(
-            attrs, resource_model.subresources)
+        self._create_available_subresources_command(attrs, resource_model.subresources)
 
-    def _create_available_subresources_command(self, attrs: Dict[str, Any], subresources: Iterable[Action]) -> None:
+    @staticmethod
+    def _create_available_subresources_command(
+        attrs: Dict[str, Any], subresources: Iterable[Action]
+    ) -> None:
         _subresources = [subresource.name for subresource in subresources]
         _subresources = sorted(_subresources)
 
-        def get_available_subresources(factory_self: Action) -> List[str]:
+        def get_available_subresources(_obj: Action) -> List[str]:
             """
             Returns a list of all the available sub-resources for this
             Resource.
@@ -274,10 +313,15 @@ class ResourceFactory:
             """
             return _subresources
 
-        attrs['get_available_subresources'] = get_available_subresources
+        attrs["get_available_subresources"] = get_available_subresources
 
-    def _load_waiters(self, attrs: Dict[str, Any], resource_name: str, resource_model: ResourceModel,
-                      service_context: ServiceContext) -> None:
+    def _load_waiters(
+        self,
+        attrs: Dict[str, Any],
+        resource_name: str,
+        resource_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> None:
         """
         Load resource waiters from the model. Each waiter allows you to
         wait until a resource reaches a specific state by polling the state
@@ -287,53 +331,67 @@ class ResourceFactory:
             attrs[waiter.name] = self._create_waiter(
                 resource_waiter_model=waiter,
                 resource_name=resource_name,
-                service_context=service_context
+                service_context=service_context,
             )
 
-    def _create_identifier(factory_self, identifier: Identifier, resource_name: str) -> property:
+    @staticmethod
+    def _create_identifier(identifier: Identifier, resource_name: str) -> property:
         """
         Creates a read-only property for identifier attributes.
         """
-        def get_identifier(self: ServiceResource) -> Identifier:
+
+        def get_identifier(obj: ServiceResource) -> Identifier:
             # The default value is set to ``None`` instead of
             # raising an AttributeError because when resources are
             # instantiated a check is made such that none of the
             # identifiers have a value ``None``. If any are ``None``,
             # a more informative user error than a generic AttributeError
             # is raised.
-            return getattr(self, '_' + identifier.name, None)
+            return getattr(obj, "_" + identifier.name, None)
 
         get_identifier.__name__ = str(identifier.name)
         get_identifier.__doc__ = docstring.IdentifierDocstring(
             resource_name=resource_name,
             identifier_model=identifier,
-            include_signature=False
+            include_signature=False,
         )
 
         return property(get_identifier)
 
-    def _create_identifier_alias(factory_self, resource_name: str, identifier: Identifier,
-                                 member_model: ResourceModel, service_context: ServiceContext) -> property:
+    def _create_identifier_alias(
+        self,
+        resource_name: str,
+        identifier: Identifier,
+        member_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> property:
         """
         Creates a read-only property that aliases an identifier.
         """
-        def get_identifier(self: ServiceResource) -> Identifier:
-            return getattr(self, '_' + identifier.name, None)
+
+        def get_identifier(obj: ServiceResource) -> Identifier:
+            return getattr(obj, "_" + identifier.name, None)
 
         get_identifier.__name__ = str(identifier.member_name)
         get_identifier.__doc__ = docstring.AttributeDocstring(
             service_name=service_context.service_name,
             resource_name=resource_name,
             attr_name=identifier.member_name,
-            event_emitter=factory_self._emitter,
+            event_emitter=self._emitter,
             attr_model=member_model,
-            include_signature=False
+            include_signature=False,
         )
 
         return property(get_identifier)
 
-    def _create_autoload_property(factory_self, resource_name: str, name: str,
-                                  snake_cased: str, member_model: ResourceModel, service_context: ServiceContext) -> property:
+    def _create_autoload_property(
+        self,
+        resource_name: str,
+        name: str,
+        snake_cased: str,
+        member_model: ResourceModel,
+        service_context: ServiceContext,
+    ) -> property:
         """
         Creates a new property on the resource to lazy-load its value
         via the resource's ``load`` method (if it exists).
@@ -342,70 +400,86 @@ class ResourceFactory:
         # been loaded and return the cached value if possible. If not, then
         # it first checks to see if it CAN be loaded (raise if not), then
         # calls the load before returning the value.
-        def property_loader(self: ServiceResource) -> Any:
-            if self.meta.data is None:
-                self.load()
+        def property_loader(obj: ServiceResource) -> Any:
+            if obj.meta.data is None:
+                obj.load()
 
-            assert self.meta.data
-            return self.meta.data.get(name)
+            assert obj.meta.data
+            return obj.meta.data.get(name)
 
         property_loader.__name__ = str(snake_cased)
         property_loader.__doc__ = docstring.AttributeDocstring(
             service_name=service_context.service_name,
             resource_name=resource_name,
             attr_name=snake_cased,
-            event_emitter=factory_self._emitter,
+            event_emitter=self._emitter,
             attr_model=member_model,
-            include_signature=False
+            include_signature=False,
         )
 
         return property(property_loader)
 
-    def _create_waiter(factory_self, resource_waiter_model: WaiterModel, resource_name: str,
-                       service_context: ServiceContext) -> Waiter:
+    def _create_waiter(
+        self,
+        resource_waiter_model: WaiterModel,
+        resource_name: str,
+        service_context: ServiceContext,
+    ) -> Waiter:
         """
         Creates a new wait method for each resource where both a waiter and
         resource model is defined.
         """
-        waiter = WaiterAction(resource_waiter_model,
-                              waiter_resource_name=resource_waiter_model.name)
+        waiter = WaiterAction(
+            resource_waiter_model, waiter_resource_name=resource_waiter_model.name
+        )
 
-        def do_waiter(self: BaseClient, *args: Any, **kwargs: Any) -> Waiter:
-            waiter(self, *args, **kwargs)
+        def do_waiter(obj: BaseClient, *args: Any, **kwargs: Any) -> Waiter:
+            waiter(obj, *args, **kwargs)
 
         do_waiter.__name__ = str(resource_waiter_model.name)
         do_waiter.__doc__ = docstring.ResourceWaiterDocstring(
             resource_name=resource_name,
-            event_emitter=factory_self._emitter,
+            event_emitter=self._emitter,
             service_model=service_context.service_model,
             resource_waiter_model=resource_waiter_model,
             service_waiter_model=service_context.service_waiter_model,
-            include_signature=False
+            include_signature=False,
         )
         return do_waiter
 
-    def _create_collection(factory_self, resource_name: str, collection_model: Collection,
-                           service_context: ServiceContext) -> property:
+    def _create_collection(
+        self,
+        resource_name: str,
+        collection_model: Collection,
+        service_context: ServiceContext,
+    ) -> property:
         """
         Creates a new property on the resource to lazy-load a collection.
         """
-        cls = factory_self._collection_factory.load_from_definition(
-            resource_name=resource_name, collection_model=collection_model,
+        cls = self._collection_factory.load_from_definition(
+            resource_name=resource_name,
+            collection_model=collection_model,
             service_context=service_context,
-            event_emitter=factory_self._emitter)
+            event_emitter=self._emitter,
+        )
 
-        def get_collection(self: ServiceResource) -> CollectionManager:
+        def get_collection(obj: ServiceResource) -> CollectionManager:
             return cls(
-                collection_model=collection_model, parent=self,
-                factory=factory_self, service_context=service_context)
+                collection_model=collection_model,
+                parent=obj,
+                factory=self,
+                service_context=service_context,
+            )
 
         get_collection.__name__ = str(collection_model.name)
         get_collection.__doc__ = docstring.CollectionDocstring(
-            collection_model=collection_model, include_signature=False)
+            collection_model=collection_model, include_signature=False
+        )
         return property(get_collection)
 
-    def _create_reference(factory_self, reference_model: Action, resource_name: str,
-                          service_context: ServiceContext) -> property:
+    def _create_reference(
+        self, reference_model: Action, service_context: ServiceContext,
+    ) -> property:
         """
         Creates a new property on the resource to lazy-load a reference.
         """
@@ -413,18 +487,20 @@ class ResourceFactory:
         # or response, so we can re-use the response handlers to
         # build up resources from identifiers and data members.
         handler = ResourceHandler(
-            search_path=reference_model.resource.path, factory=factory_self,
+            search_path=reference_model.resource.path,
+            factory=self,
             resource_model=reference_model.resource,
-            service_context=service_context
+            service_context=service_context,
         )
 
         # Are there any identifiers that need access to data members?
         # This is important when building the resource below since
         # it requires the data to be loaded.
-        needs_data = any(i.source == 'data' for i in
-                         reference_model.resource.identifiers)
+        needs_data = any(
+            i.source == "data" for i in reference_model.resource.identifiers
+        )
 
-        def get_reference(self: ServiceResource) -> Action:
+        def get_reference(obj: ServiceResource) -> Action:
             # We need to lazy-evaluate the reference to handle circular
             # references between resources. We do this by loading the class
             # when first accessed.
@@ -432,19 +508,22 @@ class ResourceFactory:
             # our data is loaded (if possible) and pass that data into
             # the handler as if it were a response. This allows references
             # to have their data loaded properly.
-            if needs_data and self.meta.data is None and hasattr(self, 'load'):
-                self.load()
-            return handler(self, {}, self.meta.data or {})
+            if needs_data and obj.meta.data is None and obj.has_load():
+                obj.load()
+            return handler(obj, {}, obj.meta.data or {})
 
         get_reference.__name__ = str(reference_model.name)
         get_reference.__doc__ = docstring.ReferenceDocstring(
-            reference_model=reference_model,
-            include_signature=False
+            reference_model=reference_model, include_signature=False
         )
         return property(get_reference)
 
-    def _create_class_partial(factory_self, subresource_model: Action, resource_name: str,
-                              service_context: ServiceContext) -> Callable[..., ServiceResource]:
+    def _create_class_partial(
+        self,
+        subresource_model: Action,
+        resource_name: str,
+        service_context: ServiceContext,
+    ) -> Callable[..., ServiceResource]:
         """
         Creates a new method which acts as a functools.partial, passing
         along the instance's low-level `client` to the new resource
@@ -452,17 +531,19 @@ class ResourceFactory:
         """
         name = subresource_model.resource.type
 
-        def create_resource(self: ServiceResource, *args: Any, **kwargs: Any) -> ServiceResource:
+        def create_resource(
+            obj: ServiceResource, *args: Any, **kwargs: Any
+        ) -> ServiceResource:
             # We need a new method here because we want access to the
             # instance's client.
             positional_args = []
 
             # We lazy-load the class to handle circular references.
             json_def = service_context.resource_json_definitions.get(name, {})
-            resource_cls = factory_self.load_from_definition(
+            resource_cls = self.load_from_definition(
                 resource_name=name,
                 single_resource_json_definition=json_def,
-                service_context=service_context
+                service_context=service_context,
             )
 
             # Assumes that identifiers are in order, which lets you do
@@ -472,23 +553,29 @@ class ResourceFactory:
             # would lead to failure.
             identifiers = subresource_model.resource.identifiers
             if identifiers is not None:
-                for identifier, value in build_identifiers(identifiers, self):
+                for _identifier, value in build_identifiers(identifiers, obj):
                     positional_args.append(value)
 
-            return partial(resource_cls, *positional_args,
-                           client=self.meta.client)(*args, **kwargs)
+            return partial(resource_cls, *positional_args, client=obj.meta.client)(
+                *args, **kwargs
+            )
 
         create_resource.__name__ = str(name)
         create_resource.__doc__ = docstring.SubResourceDocstring(
             resource_name=resource_name,
             sub_resource_model=subresource_model,
             service_model=service_context.service_model,
-            include_signature=False
+            include_signature=False,
         )
         return create_resource
 
-    def _create_action(factory_self, action_model: Action, resource_name: str,
-                       service_context: ServiceContext, is_load: bool=False) -> Callable[..., Any]:
+    def _create_action(
+        self,
+        action_model: Action,
+        resource_name: str,
+        service_context: ServiceContext,
+        is_load: bool = False,
+    ) -> Callable[..., Any]:
         """
         Creates a new method which makes a request to the underlying
         AWS service.
@@ -497,8 +584,7 @@ class ResourceFactory:
         # method below is invoked, which allows instances of the resource
         # to share the ServiceAction instance.
         action = ServiceAction(
-            action_model, factory=factory_self,
-            service_context=service_context
+            action_model, factory=self, service_context=service_context
         )
 
         # A resource's ``load`` method is special because it sets
@@ -506,36 +592,38 @@ class ResourceFactory:
         if is_load:
             # We need a new method here because we want access to the
             # instance via ``self``.
-            def do_action(self: ServiceResource, *args: Any, **kwargs: Any) -> Any:
-                response = action(self, *args, **kwargs)
-                self.meta.data = response
+            def do_action(obj: ServiceResource, *args: Any, **kwargs: Any) -> Any:
+                response = action(obj, *args, **kwargs)
+                obj.meta.data = response
+
             # Create the docstring for the load/reload mehtods.
             lazy_docstring = docstring.LoadReloadDocstring(
                 action_name=action_model.name,
                 resource_name=resource_name,
-                event_emitter=factory_self._emitter,
+                event_emitter=self._emitter,
                 load_model=action_model,
                 service_model=service_context.service_model,
-                include_signature=False
+                include_signature=False,
             )
         else:
             # We need a new method here because we want access to the
             # instance via ``self``.
-            def do_action(self: ServiceResource, *args: Any, **kwargs: Any) -> Any:
-                response = action(self, *args, **kwargs)
-                
-                if self.has_load():
+            def do_action(obj: ServiceResource, *args: Any, **kwargs: Any) -> Any:
+                response = action(obj, *args, **kwargs)
+
+                if obj.has_load():
                     # Clear cached data. It will be reloaded the next
                     # time that an attribute is accessed.
                     # TODO: Make this configurable in the future?
-                    self.meta.data = None
+                    obj.meta.data = None
                 return response
+
             lazy_docstring = docstring.ActionDocstring(
                 resource_name=resource_name,
-                event_emitter=factory_self._emitter,
+                event_emitter=self._emitter,
                 action_model=action_model,
                 service_model=service_context.service_model,
-                include_signature=False
+                include_signature=False,
             )
 
         do_action.__name__ = str(action_model.name)

@@ -10,26 +10,26 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from typing import Callable, Any, Dict, List
+from typing import Any, Dict, List
 
 from botocore.client import BaseClient
 
 
-def inject_create_tags(event_name: str, class_attributes: Dict[str, Any], **kwargs: Any) -> None:
+def inject_create_tags(class_attributes: Dict[str, Any], **_kwargs: Any) -> None:
     """This injects a custom create_tags method onto the ec2 service resource
 
     This is needed because the resource model is not able to express
     creating multiple tag resources based on the fact you can apply a set
     of tags to multiple ec2 resources.
     """
-    class_attributes['create_tags'] = create_tags
+    class_attributes["create_tags"] = create_tags
 
 
 def create_tags(self: BaseClient, **kwargs: Any) -> List[Dict[str, Any]]:
     # Call the client method
     self.meta.client.create_tags(**kwargs)
-    resources = kwargs.get('Resources', [])
-    tags = kwargs.get('Tags', [])
+    resources = kwargs.get("Resources", [])
+    tags = kwargs.get("Tags", [])
     tag_resources = []
 
     # Generate all of the tag resources that just were created with the
@@ -38,6 +38,6 @@ def create_tags(self: BaseClient, **kwargs: Any) -> List[Dict[str, Any]]:
         for tag in tags:
             # Add each tag from the tag set for each resource to the list
             # that is returned by the method.
-            tag_resource = self.Tag(resource, tag['Key'], tag['Value'])
+            tag_resource = self.Tag(resource, tag["Key"], tag["Value"])
             tag_resources.append(tag_resource)
     return tag_resources
