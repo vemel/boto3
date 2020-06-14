@@ -86,9 +86,7 @@ class Session:
         if region_name is not None:
             self._session.set_config_variable("region", region_name)
 
-        self.resource_factory = ResourceFactory(
-            self._session.get_component("event_emitter")
-        )
+        self.resource_factory = ResourceFactory(self._session.get_component("event_emitter"))
         self._setup_loader()
         self._register_default_handlers()
 
@@ -130,9 +128,7 @@ class Session:
         Setup loader paths so that we can load resources.
         """
         self._loader = self._session.get_component("data_loader")
-        self._loader.search_paths.append(
-            os.path.join(os.path.dirname(__file__), "data")
-        )
+        self._loader.search_paths.append(os.path.join(os.path.dirname(__file__), "data"))
 
     def get_available_services(self) -> List[str]:
         """
@@ -163,10 +159,7 @@ class Session:
         return self._session.get_available_partitions()
 
     def get_available_regions(
-        self,
-        service_name: str,
-        partition_name: str = "aws",
-        allow_non_regional: bool = False,
+        self, service_name: str, partition_name: str = "aws", allow_non_regional: bool = False,
     ) -> List[str]:
         """Lists the region and endpoint names of a particular partition.
 
@@ -389,9 +382,7 @@ class Session:
             raise ResourceNotExistsError(service_name, available, has_low_level_client)
         except DataNotFoundError:
             # This is because we've provided an invalid API version.
-            available_api_versions = self._loader.list_api_versions(
-                service_name, "resources-1"
-            )
+            available_api_versions = self._loader.list_api_versions(service_name, "resources-1")
             raise UnknownAPIVersionError(
                 service_name, api_version or "latest", ", ".join(available_api_versions)
             )
@@ -412,9 +403,7 @@ class Session:
             #   loader.load_service_model(..., api_version=None)
             # and loader.determine_latest_version(..., 'resources-1')
             # both load the same api version of the file.
-            api_version = self._loader.determine_latest_version(
-                service_name, "resources-1"
-            )
+            api_version = self._loader.determine_latest_version(service_name, "resources-1")
 
         # Creating a new resource instance requires the low-level client
         # and service model, the resource version and resource JSON data.
@@ -482,9 +471,7 @@ class Session:
         # DynamoDb customizations
         self._session.register(
             "creating-resource-class.dynamodb",
-            boto3.utils.lazy_call(
-                "boto3.dynamodb.transform.register_high_level_interface"
-            ),
+            boto3.utils.lazy_call("boto3.dynamodb.transform.register_high_level_interface"),
             unique_id="high-level-dynamodb",
         )
         self._session.register(

@@ -65,9 +65,7 @@ class ServiceAction:
 
         # In the simplest case we just return the response, but if a
         # resource is defined, then we must create these before returning.
-        resource_response_model = (
-            action_model.resource if action_model.has_resource() else None
-        )
+        resource_response_model = action_model.resource if action_model.has_resource() else None
         if resource_response_model and action_model.request:
             assert factory
             assert service_context
@@ -100,9 +98,7 @@ class ServiceAction:
         params = create_request_parameters(parent, self._action_model.request)
         params.update(kwargs)
 
-        logger.debug(
-            "Calling %s:%s with %r", parent.meta.service_name, operation_name, params
-        )
+        logger.debug("Calling %s:%s with %r", parent.meta.service_name, operation_name, params)
 
         response = getattr(parent.meta.client, operation_name)(*args, **params)
 
@@ -130,9 +126,7 @@ class BatchAction(ServiceAction):
     :param service_context: Context about the AWS service
     """
 
-    def __call__(
-        self, parent: ServiceResource, *args: Any, **kwargs: Any
-    ) -> List[Dict[str, Any]]:
+    def __call__(self, parent: ServiceResource, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
         """
         Perform the batch action's operation on every page of results
         from the collection.
@@ -220,10 +214,7 @@ class WaiterAction:
         params.update(kwargs)
 
         logger.debug(
-            "Calling %s:%s with %r",
-            parent.meta.service_name,
-            self._waiter_resource_name,
-            params,
+            "Calling %s:%s with %r", parent.meta.service_name, self._waiter_resource_name, params,
         )
 
         client = parent.meta.client
@@ -271,7 +262,7 @@ class CustomModeledAction:
         class_attributes: Dict[str, Any],
         service_context: ServiceContext,
         event_name: str,
-        **_kwargs: Any
+        **_kwargs: Any,
     ) -> None:
         resource_name = event_name.rsplit(".")[-1]
         action = Action(self.name, self.model, {})

@@ -25,9 +25,7 @@ from boto3.s3.transfer import (
 )
 
 
-def inject_s3_transfer_methods(
-    class_attributes: Dict[str, Any], **_kwargs: Any
-) -> None:
+def inject_s3_transfer_methods(class_attributes: Dict[str, Any], **_kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, "upload_file", upload_file)
     utils.inject_attribute(class_attributes, "download_file", download_file)
     utils.inject_attribute(class_attributes, "copy", copy)
@@ -41,9 +39,7 @@ def inject_bucket_methods(class_attributes: Dict[str, Any], **_kwargs: Any) -> N
     utils.inject_attribute(class_attributes, "download_file", bucket_download_file)
     utils.inject_attribute(class_attributes, "copy", bucket_copy)
     utils.inject_attribute(class_attributes, "upload_fileobj", bucket_upload_fileobj)
-    utils.inject_attribute(
-        class_attributes, "download_fileobj", bucket_download_fileobj
-    )
+    utils.inject_attribute(class_attributes, "download_fileobj", bucket_download_fileobj)
 
 
 def inject_object_methods(class_attributes: Dict[str, Any], **_kwargs: Any) -> None:
@@ -51,14 +47,10 @@ def inject_object_methods(class_attributes: Dict[str, Any], **_kwargs: Any) -> N
     utils.inject_attribute(class_attributes, "download_file", object_download_file)
     utils.inject_attribute(class_attributes, "copy", object_copy)
     utils.inject_attribute(class_attributes, "upload_fileobj", object_upload_fileobj)
-    utils.inject_attribute(
-        class_attributes, "download_fileobj", object_download_fileobj
-    )
+    utils.inject_attribute(class_attributes, "download_fileobj", object_download_fileobj)
 
 
-def inject_object_summary_methods(
-    class_attributes: Dict[str, Any], **_kwargs: Any
-) -> None:
+def inject_object_summary_methods(class_attributes: Dict[str, Any], **_kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, "load", object_summary_load)
 
 
@@ -142,11 +134,7 @@ def upload_file(
     """
     with S3Transfer(self, Config) as transfer:
         return transfer.upload_file(
-            filename=Filename,
-            bucket=Bucket,
-            key=Key,
-            extra_args=ExtraArgs,
-            callback=Callback,
+            filename=Filename, bucket=Bucket, key=Key, extra_args=ExtraArgs, callback=Callback,
         )
 
 
@@ -194,11 +182,7 @@ def download_file(
     """
     with S3Transfer(self, Config) as transfer:
         return transfer.download_file(
-            bucket=Bucket,
-            key=Key,
-            filename=Filename,
-            extra_args=ExtraArgs,
-            callback=Callback,
+            bucket=Bucket, key=Key, filename=Filename, extra_args=ExtraArgs, callback=Callback,
         )
 
 
@@ -649,11 +633,7 @@ def upload_fileobj(
 
     with create_transfer_manager(self, config) as manager:
         future = manager.upload(
-            fileobj=Fileobj,
-            bucket=Bucket,
-            key=Key,
-            extra_args=ExtraArgs,
-            subscribers=subscribers,
+            fileobj=Fileobj, bucket=Bucket, key=Key, extra_args=ExtraArgs, subscribers=subscribers,
         )
         return future.result()
 
@@ -820,11 +800,7 @@ def download_fileobj(
 
     with create_transfer_manager(self, config) as manager:
         future = manager.download(
-            bucket=Bucket,
-            key=Key,
-            fileobj=Fileobj,
-            extra_args=ExtraArgs,
-            subscribers=subscribers,
+            bucket=Bucket, key=Key, fileobj=Fileobj, extra_args=ExtraArgs, subscribers=subscribers,
         )
         return future.result()
 

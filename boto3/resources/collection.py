@@ -61,11 +61,7 @@ class ResourceCollection:
     """
 
     def __init__(
-        self,
-        model: Collection,
-        parent: ServiceResource,
-        handler: ResourceHandler,
-        **kwargs: Any
+        self, model: Collection, parent: ServiceResource, handler: ResourceHandler, **kwargs: Any
     ) -> None:
         self._model = model
         self._parent = parent
@@ -432,11 +428,7 @@ class CollectionFactory:
 
         # Create the batch actions for a collection
         self._load_batch_actions(
-            attrs,
-            resource_name,
-            collection_model,
-            service_context.service_model,
-            event_emitter,
+            attrs, resource_name, collection_model, service_context.service_model, event_emitter,
         )
         # Add the documentation to the collection class's methods
         self._load_documented_collection_methods(
@@ -449,9 +441,7 @@ class CollectionFactory:
         )
 
         if service_context.service_name == resource_name:
-            cls_name = "{0}.{1}Collection".format(
-                service_context.service_name, collection_name
-            )
+            cls_name = "{0}.{1}Collection".format(service_context.service_name, collection_name)
         else:
             cls_name = "{0}.{1}.{2}Collection".format(
                 service_context.service_name, resource_name, collection_name

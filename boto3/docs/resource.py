@@ -33,9 +33,7 @@ from boto3.resources.base import ServiceResource
 
 
 class ResourceDocumenter(BaseDocumenter):
-    def __init__(
-        self, resource: ServiceResource, botocore_session: BotocoreSession
-    ) -> None:
+    def __init__(self, resource: ServiceResource, botocore_session: BotocoreSession) -> None:
         super(ResourceDocumenter, self).__init__(resource)
         self._botocore_session = botocore_session
 
@@ -63,9 +61,7 @@ class ResourceDocumenter(BaseDocumenter):
 
         # Write out the class signature.
         class_args = get_identifier_args_for_signature(identifier_names)
-        section.style.start_sphinx_py_class(
-            class_name="%s(%s)" % (self.class_name, class_args)
-        )
+        section.style.start_sphinx_py_class(class_name="%s(%s)" % (self.class_name, class_args))
 
         # Add as short description about the resource
         description_section = section.add_new_section("description")
@@ -83,21 +79,16 @@ class ResourceDocumenter(BaseDocumenter):
     def _add_description(self, section: DocumentStructure) -> None:
         official_service_name = get_official_service_name(self._service_model)
         section.write(
-            "A resource representing an %s %s"
-            % (official_service_name, self._resource_name)
+            "A resource representing an %s %s" % (official_service_name, self._resource_name)
         )
 
-    def _add_example(
-        self, section: DocumentStructure, identifier_names: Iterable[str]
-    ) -> None:
+    def _add_example(self, section: DocumentStructure, identifier_names: Iterable[str]) -> None:
         section.style.start_codeblock()
         section.style.new_line()
         section.write("import boto3")
         section.style.new_line()
         section.style.new_line()
-        section.write(
-            "%s = boto3.resource('%s')" % (self._service_name, self._service_name)
-        )
+        section.write("%s = boto3.resource('%s')" % (self._service_name, self._service_name))
         section.style.new_line()
         example_values = get_identifier_values_for_example(identifier_names)
         section.write(
@@ -115,9 +106,7 @@ class ResourceDocumenter(BaseDocumenter):
         self, section: DocumentStructure, identifier_names: Iterable[str]
     ) -> None:
         for identifier_name in identifier_names:
-            description = get_identifier_description(
-                self._resource_name, identifier_name
-            )
+            description = get_identifier_description(self._resource_name, identifier_name)
             section.write(":type %s: string" % identifier_name)
             section.style.new_line()
             section.write(":param %s: %s" % (identifier_name, description))
@@ -126,9 +115,7 @@ class ResourceDocumenter(BaseDocumenter):
     def _add_overview_of_members(self, section: DocumentStructure) -> None:
         for resource_member_type in self.member_map:
             section.style.new_line()
-            section.write(
-                "These are the resource's available %s:" % (resource_member_type)
-            )
+            section.write("These are the resource's available %s:" % (resource_member_type))
             section.style.new_line()
             for member in self.member_map[resource_member_type]:
                 if resource_member_type in [
@@ -218,9 +205,7 @@ class ResourceDocumenter(BaseDocumenter):
             reference_section = section.add_new_section(reference.name)
             reference_list.append(reference.name)
             document_reference(
-                section=reference_section,
-                reference_model=reference,
-                include_signature=True,
+                section=reference_section, reference_model=reference, include_signature=True,
             )
 
     def _add_actions(self, section: DocumentStructure) -> None:
@@ -251,9 +236,7 @@ class ResourceDocumenter(BaseDocumenter):
         section = section.add_new_section("waiters")
         waiters = self.resource_model.waiters
         if waiters:
-            service_waiter_model = self._botocore_session.get_waiter_model(
-                self._service_name
-            )
+            service_waiter_model = self._botocore_session.get_waiter_model(self._service_name)
             documenter = WaiterResourceDocumenter(self._resource, service_waiter_model)
             documenter.member_map = self.member_map
             documenter.document_resource_waiters(section)
@@ -271,15 +254,11 @@ class ServiceResourceDocumenter(ResourceDocumenter):
         official_service_name = get_official_service_name(self._service_model)
         section.write("A resource representing %s" % official_service_name)
 
-    def _add_example(
-        self, section: DocumentStructure, identifier_names: Iterable[str]
-    ) -> None:
+    def _add_example(self, section: DocumentStructure, identifier_names: Iterable[str]) -> None:
         section.style.start_codeblock()
         section.style.new_line()
         section.write("import boto3")
         section.style.new_line()
         section.style.new_line()
-        section.write(
-            "%s = boto3.resource('%s')" % (self._service_name, self._service_name)
-        )
+        section.write("%s = boto3.resource('%s')" % (self._service_name, self._service_name))
         section.style.end_codeblock()

@@ -51,9 +51,7 @@ class CollectionDocumenter(BaseDocumenter):
             collections_list.append(collection.name)
             self._document_collection(collection_section, collection)
 
-    def _document_collection(
-        self, section: DocumentStructure, collection: Collection
-    ) -> None:
+    def _document_collection(self, section: DocumentStructure, collection: Collection) -> None:
         methods = get_instance_public_methods(getattr(self._resource, collection.name))
         document_collection_object(section, collection)
         batch_actions = {}
@@ -83,9 +81,7 @@ class CollectionDocumenter(BaseDocumenter):
 
 
 def document_collection_object(
-    section: DocumentStructure,
-    collection_model: Collection,
-    include_signature: bool = True,
+    section: DocumentStructure, collection_model: Collection, include_signature: bool = True,
 ) -> None:
     """Documents a collection resource object
 
@@ -98,9 +94,7 @@ def document_collection_object(
     """
     if include_signature:
         section.style.start_sphinx_py_attr(collection_model.name)
-    section.include_doc_string(
-        "A collection of %s resources." % collection_model.resource.type
-    )
+    section.include_doc_string("A collection of %s resources." % collection_model.resource.type)
     section.include_doc_string(
         "A %s Collection will include all resources by default, "
         "and extreme caution should be taken when performing "
@@ -137,9 +131,7 @@ def document_batch_action(
     :param include_signature: Whether or not to include the signature.
         It is useful for generating docstrings.
     """
-    operation_model = service_model.operation_model(
-        batch_action_model.request.operation
-    )
+    operation_model = service_model.operation_model(batch_action_model.request.operation)
     ignore_params = get_resource_ignore_params(batch_action_model.request.params)
 
     example_return_value = "response"
@@ -264,9 +256,7 @@ def document_collection_method(
             DocumentedShape(
                 name="count",
                 type_name="integer",
-                documentation=(
-                    "The limit to the number of resources " "in the iterable."
-                ),
+                documentation=("The limit to the number of resources " "in the iterable."),
             )
         ],
         "page_size": [

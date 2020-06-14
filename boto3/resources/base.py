@@ -58,9 +58,7 @@ class ResourceMeta:
         self.resource_model = resource_model
 
     def __repr__(self) -> str:
-        return "ResourceMeta('{0}', identifiers={1})".format(
-            self.service_name, self.identifiers
-        )
+        return "ResourceMeta('{0}', identifiers={1})".format(self.service_name, self.identifiers)
 
     def __eq__(self, other: Any) -> bool:
         # Two metas are equal if their components are all equal
@@ -137,9 +135,7 @@ class ServiceResource:
     def __repr__(self) -> str:
         identifiers = []
         for identifier in self.meta.identifiers:
-            identifiers.append(
-                "{0}={1}".format(identifier, repr(getattr(self, identifier)))
-            )
+            identifiers.append("{0}={1}".format(identifier, repr(getattr(self, identifier))))
         return "{0}({1})".format(self.__class__.__name__, ", ".join(identifiers),)
 
     def __eq__(self, other: Any) -> bool:
@@ -162,9 +158,7 @@ class ServiceResource:
         return hash((self.__class__.__name__, tuple(identifiers)))
 
     def load(self) -> None:
-        raise ResourceLoadException(
-            "{0} has no load method".format(self.__class__.__name__)
-        )
+        raise ResourceLoadException("{0} has no load method".format(self.__class__.__name__))
 
     def has_load(self) -> bool:
         return self.__class__.load != ServiceResource.load

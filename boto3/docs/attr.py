@@ -48,9 +48,7 @@ def document_attribute(
     # operation_name to the resource name if we ever to hook in and modify
     # a particular attribute.
     ResourceShapeDocumenter(
-        service_name=service_name,
-        operation_name=resource_name,
-        event_emitter=event_emitter,
+        service_name=service_name, operation_name=resource_name, event_emitter=event_emitter,
     ).document_params(section=section, shape=attr_model)
 
 
@@ -74,6 +72,4 @@ def document_reference(
         section.style.start_sphinx_py_attr(reference_model.name)
     reference_type = "(:py:class:`%s`) " % reference_model.resource.type
     section.write(reference_type)
-    section.include_doc_string(
-        "The related %s if set, otherwise ``None``." % reference_model.name
-    )
+    section.include_doc_string("The related %s if set, otherwise ``None``." % reference_model.name)

@@ -73,9 +73,7 @@ class TestResourceFactory(BaseTestResourceFactory):
     def test_factory_sets_service_name(self):
         QueueResource = self.load("Queue")
 
-        self.assertEqual(
-            QueueResource.meta.service_name, "test", "Service name not set"
-        )
+        self.assertEqual(QueueResource.meta.service_name, "test", "Service name not set")
 
     def test_factory_sets_identifiers(self):
         model = {
@@ -136,12 +134,8 @@ class TestResourceFactory(BaseTestResourceFactory):
 
         TestResource = self.load("test", model, defs)
 
-        self.assertTrue(
-            hasattr(TestResource, "Queue"), "Missing Queue class from model"
-        )
-        self.assertTrue(
-            hasattr(TestResource, "Message"), "Missing Message class from model"
-        )
+        self.assertTrue(hasattr(TestResource, "Queue"), "Missing Queue class from model")
+        self.assertTrue(hasattr(TestResource, "Message"), "Missing Message class from model")
 
     def test_factory_creates_properties(self):
         model = {
@@ -150,9 +144,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         }
         shape = (
             DenormalizedStructureBuilder()
-            .with_members(
-                {"ETag": {"type": "string",}, "LastModified": {"type": "string"}}
-            )
+            .with_members({"ETag": {"type": "string",}, "LastModified": {"type": "string"}})
             .build_model()
         )
         service_model = mock.Mock()
@@ -161,8 +153,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         TestResource = self.load("test", model, service_model=service_model)
 
         self.assertTrue(
-            hasattr(TestResource, "e_tag"),
-            "ETag shape member not available on resource",
+            hasattr(TestResource, "e_tag"), "ETag shape member not available on resource",
         )
         self.assertTrue(
             hasattr(TestResource, "last_modified"),
@@ -204,9 +195,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         # Only services should get dangling defs
         defs = {
             "Queue": {"identifiers": [{"name": "Url"}]},
-            "Message": {
-                "identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]
-            },
+            "Message": {"identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]},
         }
 
         model = defs["Queue"]
@@ -225,20 +214,14 @@ class TestResourceFactory(BaseTestResourceFactory):
                         "resource": {
                             "type": "Message",
                             "identifiers": [
-                                {
-                                    "target": "QueueUrl",
-                                    "source": "identifier",
-                                    "name": "Url",
-                                },
+                                {"target": "QueueUrl", "source": "identifier", "name": "Url",},
                                 {"target": "ReceiptHandle", "source": "input"},
                             ],
                         }
                     }
                 },
             },
-            "Message": {
-                "identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]
-            },
+            "Message": {"identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]},
         }
 
         model = defs["Queue"]
@@ -251,9 +234,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         message = queue.Message("receipt")
 
         self.assertEqual(
-            message.queue_url,
-            "url",
-            "Wrong queue URL set on the message resource instance",
+            message.queue_url, "url", "Wrong queue URL set on the message resource instance",
         )
         self.assertEqual(
             message.receipt_handle,
@@ -267,9 +248,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         queue1 = queue_cls()
         queue2 = queue_cls()
 
-        self.assertEqual(
-            queue1.meta, queue2.meta, "Queue meta copies not equal after creation"
-        )
+        self.assertEqual(queue1.meta, queue2.meta, "Queue meta copies not equal after creation")
 
         queue1.meta.data = {"id": "foo"}
         queue2.meta.data = {"id": "bar"}
@@ -292,9 +271,7 @@ class TestResourceFactory(BaseTestResourceFactory):
     @mock.patch("boto3.resources.factory.ServiceAction")
     def test_resource_calls_action(self, action_cls):
         model = {
-            "actions": {
-                "GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}
-            }
+            "actions": {"GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}}
         }
 
         action = action_cls.return_value
@@ -308,9 +285,7 @@ class TestResourceFactory(BaseTestResourceFactory):
     def test_resource_action_clears_data(self, _action_cls):
         model = {
             "load": {"request": {"operation": "DescribeQueue"}},
-            "actions": {
-                "GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}
-            },
+            "actions": {"GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}},
         }
 
         queue = self.load("Queue", model)()
@@ -329,9 +304,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         # This model has NO load method. Cached data should
         # never be cleared since it cannot be reloaded!
         model = {
-            "actions": {
-                "GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}
-            }
+            "actions": {"GetMessageStatus": {"request": {"operation": "DescribeMessageStatus"}}}
         }
 
         queue = self.load("Queue", model)()
@@ -387,9 +360,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         # Accessing another property should use cached value
         # instead of making a second call.
         self.assertEqual(
-            resource.last_modified,
-            "never",
-            "LastModified property returned wrong value",
+            resource.last_modified, "never", "LastModified property returned wrong value",
         )
         self.assertEqual(action.call_count, 1)
 
@@ -454,17 +425,13 @@ class TestResourceFactory(BaseTestResourceFactory):
                 "Subnet": {
                     "resource": {
                         "type": "Subnet",
-                        "identifiers": [
-                            {"target": "Id", "source": "data", "path": "SubnetId"}
-                        ],
+                        "identifiers": [{"target": "Id", "source": "data", "path": "SubnetId"}],
                     }
                 },
                 "Vpcs": {
                     "resource": {
                         "type": "Vpc",
-                        "identifiers": [
-                            {"target": "Id", "source": "data", "path": "Vpcs[].Id"}
-                        ],
+                        "identifiers": [{"target": "Id", "source": "data", "path": "Vpcs[].Id"}],
                     }
                 },
             },
@@ -490,9 +457,7 @@ class TestResourceFactory(BaseTestResourceFactory):
         # Load the resource with no data
         resource.meta.data = {}
 
-        self.assertTrue(
-            hasattr(resource, "subnet"), "Resource should have a subnet reference"
-        )
+        self.assertTrue(hasattr(resource, "subnet"), "Resource should have a subnet reference")
         self.assertIsNone(resource.subnet, "Missing identifier, should return None")
         self.assertIsNone(resource.vpcs)
 
@@ -515,10 +480,7 @@ class TestResourceFactory(BaseTestResourceFactory):
     def test_resource_loads_collections(self, mock_model):
         model = {
             "hasMany": {
-                u"Queues": {
-                    "request": {"operation": "ListQueues"},
-                    "resource": {"type": "Queue"},
-                }
+                "Queues": {"request": {"operation": "ListQueues"}, "resource": {"type": "Queue"},}
             }
         }
         defs = {"Queue": {}}
@@ -527,13 +489,9 @@ class TestResourceFactory(BaseTestResourceFactory):
 
         resource = self.load("test", model, defs, service_model)()
 
-        self.assertTrue(
-            hasattr(resource, "queues"), "Resource should expose queues collection"
-        )
+        self.assertTrue(hasattr(resource, "queues"), "Resource should expose queues collection")
         self.assertIsInstance(
-            resource.queues,
-            CollectionManager,
-            "Queues collection should be a collection manager",
+            resource.queues, CollectionManager, "Queues collection should be a collection manager",
         )
 
     def test_resource_loads_waiters(self):
@@ -541,9 +499,7 @@ class TestResourceFactory(BaseTestResourceFactory):
             "waiters": {
                 "Exists": {
                     "waiterName": "BucketExists",
-                    "params": [
-                        {"target": "Bucket", "source": "identifier", "name": "Name"}
-                    ],
+                    "params": [{"target": "Bucket", "source": "identifier", "name": "Name"}],
                 }
             }
         }
@@ -564,9 +520,7 @@ class TestResourceFactory(BaseTestResourceFactory):
             "waiters": {
                 "Exists": {
                     "waiterName": "BucketExists",
-                    "params": [
-                        {"target": "Bucket", "source": "identifier", "name": "Name"}
-                    ],
+                    "params": [{"target": "Bucket", "source": "identifier", "name": "Name"}],
                 }
             }
         }
@@ -627,9 +581,7 @@ class TestResourceFactoryDanglingResource(BaseTestResourceFactory):
         q = resource.Queue(url="test")
 
         self.assertIsInstance(
-            q,
-            ServiceResource,
-            "Dangling resource created with kwargs is not a ServiceResource",
+            q, ServiceResource, "Dangling resource created with kwargs is not a ServiceResource",
         )
 
     def test_dangling_resource_shares_client(self):
@@ -678,11 +630,7 @@ class TestResourceFactoryDanglingResource(BaseTestResourceFactory):
                         "resource": {
                             "type": "Message",
                             "identifiers": [
-                                {
-                                    "target": "QueueUrl",
-                                    "source": "identifier",
-                                    "name": "Url",
-                                },
+                                {"target": "QueueUrl", "source": "identifier", "name": "Url",},
                                 {"target": "Handle", "source": "input"},
                             ],
                         }
@@ -717,11 +665,7 @@ class TestResourceFactoryDanglingResource(BaseTestResourceFactory):
                         "resource": {
                             "type": "NetworkInterface",
                             "identifiers": [
-                                {
-                                    "target": "Id",
-                                    "source": "data",
-                                    "path": "NetworkInterface.Id",
-                                }
+                                {"target": "Id", "source": "data", "path": "NetworkInterface.Id",}
                             ],
                             "path": "NetworkInterface",
                         }
@@ -748,10 +692,7 @@ class TestResourceFactoryDanglingResource(BaseTestResourceFactory):
         # Set some data as if we had completed a load action.
         def set_meta_data():
             instance.meta.data = {
-                "NetworkInterface": {
-                    "Id": "network-interface-id",
-                    "PublicIp": "127.0.0.1",
-                }
+                "NetworkInterface": {"Id": "network-interface-id", "PublicIp": "127.0.0.1",}
             }
 
         instance.__class__.load = mock.Mock(side_effect=set_meta_data)
@@ -786,9 +727,7 @@ class TestServiceResourceSubresources(BaseTestResourceFactory):
 
         self.defs = {
             "Queue": {"identifiers": [{"name": "Url"}]},
-            "Message": {
-                "identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]
-            },
+            "Message": {"identifiers": [{"name": "QueueUrl"}, {"name": "ReceiptHandle"}]},
         }
 
     def test_subresource_custom_name(self):
@@ -824,21 +763,13 @@ class TestServiceResourceSubresources(BaseTestResourceFactory):
         self.assertTrue(self.emitter.emit.called)
         call_args = self.emitter.emit.call_args
         # Verify the correct event name emitted.
-        self.assertEqual(
-            call_args[0][0], "creating-resource-class.test.ServiceResource"
-        )
+        self.assertEqual(call_args[0][0], "creating-resource-class.test.ServiceResource")
 
         # Verify we send out the class attributes dict.
         actual_class_attrs = sorted(call_args[1]["class_attributes"])
         self.assertEqual(
             actual_class_attrs,
-            [
-                "Message",
-                "PriorityQueue",
-                "QueueObject",
-                "get_available_subresources",
-                "meta",
-            ],
+            ["Message", "PriorityQueue", "QueueObject", "get_available_subresources", "meta",],
         )
 
         base_classes = sorted(call_args[1]["base_classes"])

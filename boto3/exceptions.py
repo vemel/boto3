@@ -39,16 +39,13 @@ class NoVersionFound(Boto3Error):
 # Same thing for ResourceNotExistsError below.
 class UnknownAPIVersionError(Boto3Error, DataNotFoundError):
     def __init__(
-        self,
-        service_name: str,
-        bad_api_version: str,
-        available_api_versions: Iterable[str],
+        self, service_name: str, bad_api_version: str, available_api_versions: Iterable[str],
     ) -> None:
         DataNotFoundError.__init__(self, data_path=bad_api_version)
-        msg = (
-            "The '%s' resource does not an API version of: %s\n"
-            "Valid API versions are: %s"
-            % (service_name, bad_api_version, available_api_versions)
+        msg = "The '%s' resource does not an API version of: %s\n" "Valid API versions are: %s" % (
+            service_name,
+            bad_api_version,
+            available_api_versions,
         )
         # Not using super because we don't want the DataNotFoundError
         # to be called, it has a different __init__ signature.
@@ -59,10 +56,7 @@ class ResourceNotExistsError(Boto3Error, DataNotFoundError):
     """Raised when you attempt to create a resource that does not exist."""
 
     def __init__(
-        self,
-        service_name: str,
-        available_services: Iterable[str],
-        has_low_level_client: bool,
+        self, service_name: str, available_services: Iterable[str], has_low_level_client: bool,
     ) -> None:
         DataNotFoundError.__init__(self, data_path=service_name)
         msg = (
@@ -71,9 +65,9 @@ class ResourceNotExistsError(Boto3Error, DataNotFoundError):
             "   - %s\n" % (service_name, "\n   - ".join(available_services))
         )
         if has_low_level_client:
-            msg += (
-                "\nConsider using a boto3.client('%s') instead "
-                "of a resource for '%s'" % (service_name, service_name)
+            msg += "\nConsider using a boto3.client('%s') instead " "of a resource for '%s'" % (
+                service_name,
+                service_name,
             )
         # Not using super because we don't want the DataNotFoundError
         # to be called, it has a different __init__ signature.
@@ -81,9 +75,7 @@ class ResourceNotExistsError(Boto3Error, DataNotFoundError):
 
 
 class RetriesExceededError(Boto3Error):
-    def __init__(
-        self, last_exception: Exception, msg: str = "Max Retries Exceeded"
-    ) -> None:
+    def __init__(self, last_exception: Exception, msg: str = "Max Retries Exceeded") -> None:
         super(RetriesExceededError, self).__init__(msg)
         self.last_exception = last_exception
 

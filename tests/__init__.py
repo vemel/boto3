@@ -14,10 +14,7 @@
 import random
 import sys
 import time
-
-
 import unittest
-
 
 # Python 3 includes mocking, while 2 requires an extra module.
 if sys.version_info[0] == 2:
@@ -33,8 +30,7 @@ def unique_id(name):
     integration tests in parallel that must create remote
     resources.
     """
-    return '{0}-{1}-{2}'.format(name, int(time.time()),
-                                random.randint(0, 10000))
+    return "{0}-{1}-{2}".format(name, int(time.time()), random.randint(0, 10000))
 
 
 class BaseTestCase(unittest.TestCase):
@@ -42,18 +38,19 @@ class BaseTestCase(unittest.TestCase):
     A base test case which mocks out the low-level session to prevent
     any actual calls to Botocore.
     """
+
     def setUp(self):
-        self.bc_session_patch = mock.patch('botocore.session.Session')
+        self.bc_session_patch = mock.patch("botocore.session.Session")
         self.bc_session_cls = self.bc_session_patch.start()
 
         loader = self.bc_session_cls.return_value.get_component.return_value
-        loader.data_path = ''
+        loader.data_path = ""
         self.loader = loader
 
         # We also need to patch the global default session.
         # Otherwise it could be a cached real session came from previous
         # "functional" or "integration" tests.
-        patch_global_session = mock.patch('boto3.DEFAULT_SESSION')
+        patch_global_session = mock.patch("boto3.DEFAULT_SESSION")
         patch_global_session.start()
         self.addCleanup(patch_global_session.stop)
 

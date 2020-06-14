@@ -97,10 +97,7 @@ class ResourceFactory:
 
         # Identifiers
         self._load_identifiers(
-            attrs=attrs,
-            meta=meta,
-            resource_name=resource_name,
-            resource_model=resource_model,
+            attrs=attrs, meta=meta, resource_name=resource_name, resource_model=resource_model,
         )
 
         # Load/Reload actions
@@ -195,9 +192,7 @@ class ResourceFactory:
 
         for action in resource_model.actions:
             attrs[action.name] = self._create_action(
-                action_model=action,
-                resource_name=resource_name,
-                service_context=service_context,
+                action_model=action, resource_name=resource_name, service_context=service_context,
             )
 
     def _load_attributes(
@@ -218,9 +213,7 @@ class ResourceFactory:
 
         shape = service_context.service_model.shape_for(resource_model.shape)
 
-        identifiers = dict(
-            (i.member_name, i) for i in resource_model.identifiers if i.member_name
-        )
+        identifiers = dict((i.member_name, i) for i in resource_model.identifiers if i.member_name)
         attributes = resource_model.get_attributes(shape)
         for name, (orig_name, member) in attributes.items():
             if name in identifiers:
@@ -241,10 +234,7 @@ class ResourceFactory:
             attrs[name] = prop
 
     def _load_collections(
-        self,
-        attrs: Dict[str, Any],
-        resource_model: ResourceModel,
-        service_context: ServiceContext,
+        self, attrs: Dict[str, Any], resource_model: ResourceModel, service_context: ServiceContext,
     ) -> None:
         """
         Load resource collections from the model. Each collection becomes
@@ -351,9 +341,7 @@ class ResourceFactory:
 
         get_identifier.__name__ = str(identifier.name)
         get_identifier.__doc__ = docstring.IdentifierDocstring(
-            resource_name=resource_name,
-            identifier_model=identifier,
-            include_signature=False,
+            resource_name=resource_name, identifier_model=identifier, include_signature=False,
         )
 
         return property(get_identifier)
@@ -448,10 +436,7 @@ class ResourceFactory:
         return do_waiter
 
     def _create_collection(
-        self,
-        resource_name: str,
-        collection_model: Collection,
-        service_context: ServiceContext,
+        self, resource_name: str, collection_model: Collection, service_context: ServiceContext,
     ) -> property:
         """
         Creates a new property on the resource to lazy-load a collection.
@@ -496,9 +481,7 @@ class ResourceFactory:
         # Are there any identifiers that need access to data members?
         # This is important when building the resource below since
         # it requires the data to be loaded.
-        needs_data = any(
-            i.source == "data" for i in reference_model.resource.identifiers
-        )
+        needs_data = any(i.source == "data" for i in reference_model.resource.identifiers)
 
         def get_reference(obj: ServiceResource) -> Action:
             # We need to lazy-evaluate the reference to handle circular
@@ -519,10 +502,7 @@ class ResourceFactory:
         return property(get_reference)
 
     def _create_class_partial(
-        self,
-        subresource_model: Action,
-        resource_name: str,
-        service_context: ServiceContext,
+        self, subresource_model: Action, resource_name: str, service_context: ServiceContext,
     ) -> Callable[..., ServiceResource]:
         """
         Creates a new method which acts as a functools.partial, passing
@@ -531,9 +511,7 @@ class ResourceFactory:
         """
         name = subresource_model.resource.type
 
-        def create_resource(
-            obj: ServiceResource, *args: Any, **kwargs: Any
-        ) -> ServiceResource:
+        def create_resource(obj: ServiceResource, *args: Any, **kwargs: Any) -> ServiceResource:
             # We need a new method here because we want access to the
             # instance's client.
             positional_args = []
@@ -556,9 +534,7 @@ class ResourceFactory:
                 for _identifier, value in build_identifiers(identifiers, obj):
                     positional_args.append(value)
 
-            return partial(resource_cls, *positional_args, client=obj.meta.client)(
-                *args, **kwargs
-            )
+            return partial(resource_cls, *positional_args, client=obj.meta.client)(*args, **kwargs)
 
         create_resource.__name__ = str(name)
         create_resource.__doc__ = docstring.SubResourceDocstring(
@@ -583,9 +559,7 @@ class ResourceFactory:
         # Create the action in in this closure but before the ``do_action``
         # method below is invoked, which allows instances of the resource
         # to share the ServiceAction instance.
-        action = ServiceAction(
-            action_model, factory=self, service_context=service_context
-        )
+        action = ServiceAction(action_model, factory=self, service_context=service_context)
 
         # A resource's ``load`` method is special because it sets
         # values on the resource instead of returning the response.

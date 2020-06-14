@@ -46,8 +46,7 @@ class SubResourceDocumenter(BaseDocumenter):
             intro_link="subresources_intro",
         )
         sub_resources = sorted(
-            self.resource_model.subresources,
-            key=lambda sub_resource: sub_resource.name,
+            self.resource_model.subresources, key=lambda sub_resource: sub_resource.name,
         )
         sub_resources_list: List[str] = []
         self.member_map["sub-resources"] = sub_resources_list
@@ -111,9 +110,7 @@ def document_sub_resource(
 
     param_section = section.add_new_section("params")
     for identifier_name in identifiers_needed:
-        description = get_identifier_description(
-            sub_resource_model.name, identifier_name
-        )
+        description = get_identifier_description(sub_resource_model.name, identifier_name)
         param_section.write(":type %s: string" % identifier_name)
         param_section.style.new_line()
         param_section.write(":param %s: %s" % (identifier_name, description))

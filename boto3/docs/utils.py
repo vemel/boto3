@@ -66,10 +66,7 @@ def get_identifier_args_for_signature(identifier_names: Iterable[str]) -> str:
 
 
 def get_identifier_description(resource_name: str, identifier_name: str) -> str:
-    return "The %s's %s identifier. This **must** be set." % (
-        resource_name,
-        identifier_name,
-    )
+    return "The %s's %s identifier. This **must** be set." % (resource_name, identifier_name,)
 
 
 def add_resource_type_overview(
@@ -90,19 +87,14 @@ def add_resource_type_overview(
     if intro_link is not None:
         section.write(
             "For more information about %s refer to the "
-            ":ref:`Resources Introduction Guide<%s>`."
-            % (resource_type.lower(), intro_link)
+            ":ref:`Resources Introduction Guide<%s>`." % (resource_type.lower(), intro_link)
         )
         section.style.new_line()
 
 
 class DocumentModifiedShape:
     def __init__(
-        self,
-        shape_name: str,
-        new_type: str,
-        new_description: str,
-        new_example_value: str,
+        self, shape_name: str, new_type: str, new_description: str, new_example_value: str,
     ) -> None:
         self._shape_name = shape_name
         self._new_type = new_type
@@ -121,9 +113,7 @@ class DocumentModifiedShape:
             else:
                 self.replace_documentation_for_matching_shape(event_name, sub_section)
 
-    def _replace_documentation(
-        self, event_name: str, section: DocumentStructure
-    ) -> None:
+    def _replace_documentation(self, event_name: str, section: DocumentStructure) -> None:
         if event_name.startswith("docs.request-example") or event_name.startswith(
             "docs.response-example"
         ):

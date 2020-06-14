@@ -293,11 +293,7 @@ class Attr(AttributeBase):
 
 BuiltConditionExpression = namedtuple(
     "BuiltConditionExpression",
-    [
-        "condition_expression",
-        "attribute_name_placeholders",
-        "attribute_value_placeholders",
-    ],
+    ["condition_expression", "attribute_name_placeholders", "attribute_value_placeholders",],
 )
 
 
@@ -396,10 +392,7 @@ class ConditionExpressionBuilder:
         # to extract out all parts of the expression.
         if isinstance(value, ConditionBase):
             return self._build_expression(
-                value,
-                attribute_name_placeholders,
-                attribute_value_placeholders,
-                is_key_condition,
+                value, attribute_name_placeholders, attribute_value_placeholders, is_key_condition,
             )
         # If it is not a ConditionBase, we can recurse no further.
         # So we check if it is an attribute and add placeholders for

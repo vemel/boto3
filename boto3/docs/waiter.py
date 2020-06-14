@@ -35,8 +35,7 @@ class WaiterResourceDocumenter(BaseDocumenter):
             section=section,
             resource_type="Waiters",
             description=(
-                "Waiters provide an interface to wait for a resource"
-                " to reach a specific state."
+                "Waiters provide an interface to wait for a resource" " to reach a specific state."
             ),
             intro_link="waiters_intro",
         )

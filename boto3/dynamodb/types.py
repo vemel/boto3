@@ -269,8 +269,7 @@ class TypeDeserializer:
 
         if not value:
             raise TypeError(
-                "Value must be a nonempty dictionary whose key "
-                "is a valid dynamodb type."
+                "Value must be a nonempty dictionary whose key " "is a valid dynamodb type."
             )
         dynamodb_type = list(value.keys())[0]
         try:

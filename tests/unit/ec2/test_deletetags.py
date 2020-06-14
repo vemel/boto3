@@ -11,6 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import unittest
+
 import mock
 
 from boto3.ec2.deletetags import delete_tags
@@ -21,20 +22,20 @@ class TestDeleteTags(unittest.TestCase):
         self.client = mock.Mock()
         self.resource = mock.Mock()
         self.resource.meta.client = self.client
-        self.instance_id = 'instance_id'
+        self.instance_id = "instance_id"
         self.resource.id = self.instance_id
 
     def test_delete_tags(self):
         tags = {
-            'Tags': [
-                {'Key': 'key1', 'Value': 'value1'},
-                {'Key': 'key2', 'Value': 'value2'},
-                {'Key': 'key3', 'Value': 'value3'}
+            "Tags": [
+                {"Key": "key1", "Value": "value1"},
+                {"Key": "key2", "Value": "value2"},
+                {"Key": "key3", "Value": "value3"},
             ]
         }
 
         delete_tags(self.resource, **tags)
 
         kwargs = tags
-        kwargs['Resources'] = [self.instance_id]
+        kwargs["Resources"] = [self.instance_id]
         self.client.delete_tags.assert_called_with(**kwargs)

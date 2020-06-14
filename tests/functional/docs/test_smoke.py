@@ -23,9 +23,7 @@ def test_docs_generated():
     botocore_session = botocore.session.get_session()
     session = boto3.Session(region_name="us-east-1")
     for service_name in session.get_available_services():
-        generated_docs = ServiceDocumenter(
-            service_name, session=session
-        ).document_service()
+        generated_docs = ServiceDocumenter(service_name, session=session).document_service()
         generated_docs = generated_docs.decode("utf-8")
         client = boto3.client(service_name, "us-east-1")
 
@@ -39,10 +37,7 @@ def test_docs_generated():
         try:
             paginator_model = botocore_session.get_paginator_model(service_name)
             _assert_has_paginator_documentation(
-                generated_docs,
-                service_name,
-                client,
-                sorted(paginator_model._paginator_config),
+                generated_docs, service_name, client, sorted(paginator_model._paginator_config),
             )
         except DataNotFoundError:
             pass
@@ -95,9 +90,7 @@ def _assert_has_client_documentation(generated_docs, service_name, client):
     _assert_contains_lines_in_order(ref_lines, generated_docs)
 
 
-def _assert_has_paginator_documentation(
-    generated_docs, service_name, client, paginator_names
-):
+def _assert_has_paginator_documentation(generated_docs, service_name, client, paginator_names):
     ref_lines = [
         "==========",
         "Paginators",
@@ -106,36 +99,26 @@ def _assert_has_paginator_documentation(
     ]
     for paginator_name in paginator_names:
         ref_lines.append(
-            "* :py:class:`%s.Paginator.%s`"
-            % (client.__class__.__name__, paginator_name)
+            "* :py:class:`%s.Paginator.%s`" % (client.__class__.__name__, paginator_name)
         )
 
     for paginator_name in paginator_names:
         ref_lines.append(
-            ".. py:class:: %s.Paginator.%s"
-            % (client.__class__.__name__, paginator_name)
+            ".. py:class:: %s.Paginator.%s" % (client.__class__.__name__, paginator_name)
         )
         ref_lines.append("  .. py:method:: paginate(")
 
     _assert_contains_lines_in_order(ref_lines, generated_docs)
 
 
-def _assert_has_waiter_documentation(
-    generated_docs, service_name, client, waiter_model
-):
+def _assert_has_waiter_documentation(generated_docs, service_name, client, waiter_model):
     ref_lines = ["=======", "Waiters", "=======", "The available waiters are:"]
     for waiter_name in waiter_model.waiter_names:
-        ref_lines.append(
-            "* :py:class:`%s.Waiter.%s`" % (client.__class__.__name__, waiter_name)
-        )
+        ref_lines.append("* :py:class:`%s.Waiter.%s`" % (client.__class__.__name__, waiter_name))
 
     for waiter_name in waiter_model.waiter_names:
-        ref_lines.append(
-            ".. py:class:: %s.Waiter.%s" % (client.__class__.__name__, waiter_name)
-        )
-        ref_lines.append(
-            "    waiter = client.get_waiter('%s')" % xform_name(waiter_name)
-        )
+        ref_lines.append(".. py:class:: %s.Waiter.%s" % (client.__class__.__name__, waiter_name))
+        ref_lines.append("    waiter = client.get_waiter('%s')" % xform_name(waiter_name))
         ref_lines.append("  .. py:method:: wait(")
 
     _assert_contains_lines_in_order(ref_lines, generated_docs)

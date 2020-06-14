@@ -17,9 +17,7 @@ from boto3.session import Session
 
 def create_session():
     session = Session(
-        aws_access_key_id="dummy",
-        aws_secret_access_key="dummy",
-        region_name="us-east-1",
+        aws_access_key_id="dummy", aws_secret_access_key="dummy", region_name="us-east-1",
     )
     return session
 
@@ -60,15 +58,11 @@ def _assert_same_api_versions(service_name, botocore_session, boto3_session):
     resource = boto3_session.resource(service_name)
     boto3_api_version = resource.meta.client.meta.service_model.api_version
     client = botocore_session.create_client(
-        service_name,
-        region_name="us-east-1",
-        aws_access_key_id="foo",
-        aws_secret_access_key="bar",
+        service_name, region_name="us-east-1", aws_access_key_id="foo", aws_secret_access_key="bar",
     )
     botocore_api_version = client.meta.service_model.api_version
     if botocore_api_version != boto3_api_version:
         raise AssertionError(
             "Different latest API versions found for %s: "
-            "%s (botocore), %s (boto3)\n"
-            % (service_name, botocore_api_version, boto3_api_version)
+            "%s (botocore), %s (boto3)\n" % (service_name, botocore_api_version, boto3_api_version)
         )

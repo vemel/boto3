@@ -253,8 +253,7 @@ class S3Transfer:
     ) -> None:
         if not client and not manager:
             raise ValueError(
-                "Either a boto3.Client or s3transfer.manager.TransferManager "
-                "must be provided"
+                "Either a boto3.Client or s3transfer.manager.TransferManager " "must be provided"
             )
         if manager and any([client, config, osutil]):
             raise ValueError(

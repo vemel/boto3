@@ -12,15 +12,14 @@
 # language governing permissions and limitations under the License.
 
 import boto3.session
-
-from tests import unittest, unique_id
+from tests import unique_id, unittest
 
 
 class TestSQSResource(unittest.TestCase):
     def setUp(self):
-        self.session = boto3.session.Session(region_name='us-west-2')
-        self.sqs = self.session.resource('sqs')
-        self.queue_name = unique_id('boto3-test')
+        self.session = boto3.session.Session(region_name="us-west-2")
+        self.sqs = self.session.resource("sqs")
+        self.queue_name = unique_id("boto3-test")
 
     def test_sqs(self):
         # Create a new resource
@@ -28,7 +27,7 @@ class TestSQSResource(unittest.TestCase):
         self.addCleanup(queue.delete)
 
         # Call an action
-        queue.send_message(MessageBody='test')
+        queue.send_message(MessageBody="test")
 
         # Get pre-populated resources and access attributes
         messages = queue.receive_messages(WaitTimeSeconds=1)
@@ -37,4 +36,4 @@ class TestSQSResource(unittest.TestCase):
         self.addCleanup(messages[0].delete)
 
         self.assertEqual(queue.url, messages[0].queue_url)
-        self.assertEqual('test', messages[0].body)
+        self.assertEqual("test", messages[0].body)

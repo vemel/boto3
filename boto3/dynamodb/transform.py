@@ -86,9 +86,7 @@ class DynamoDBHighLevelResource(ServiceResource):
 
         key_expression_shape_docs = DocumentModifiedShape(
             "KeyExpression",
-            new_type=(
-                "condition from :py:class:`boto3.dynamodb.conditions.Key` " "method"
-            ),
+            new_type=("condition from :py:class:`boto3.dynamodb.conditions.Key` " "method"),
             new_description=(
                 "The condition(s) a key(s) must meet. Valid conditions are "
                 "listed in the "
@@ -99,9 +97,7 @@ class DynamoDBHighLevelResource(ServiceResource):
 
         con_expression_shape_docs = DocumentModifiedShape(
             "ConditionExpression",
-            new_type=(
-                "condition from :py:class:`boto3.dynamodb.conditions.Attr` " "method"
-            ),
+            new_type=("condition from :py:class:`boto3.dynamodb.conditions.Attr` " "method"),
             new_description=(
                 "The condition(s) an attribute(s) must meet. Valid conditions "
                 "are listed in the "
@@ -175,9 +171,7 @@ class TransformationInjector:
             placeholder_values=generated_values,
             is_key_condition=True,
         )
-        self._transformer.transform(
-            params, model.input_shape, transformation, "KeyExpression"
-        )
+        self._transformer.transform(params, model.input_shape, transformation, "KeyExpression")
 
         expr_attr_names_input = "ExpressionAttributeNames"
         expr_attr_values_input = "ExpressionAttributeValues"
@@ -210,10 +204,7 @@ class TransformationInjector:
         """Injects DynamoDB deserialization into responses"""
         if model.output_shape is not None:
             self._transformer.transform(
-                parsed,
-                model.output_shape,
-                self._deserializer.deserialize,
-                "AttributeValue",
+                parsed, model.output_shape, self._deserializer.deserialize, "AttributeValue",
             )
 
 
@@ -245,9 +236,7 @@ class ConditionExpressionTransformation:
             )
 
             self._placeholder_names.update(built_expression.attribute_name_placeholders)
-            self._placeholder_values.update(
-                built_expression.attribute_value_placeholders
-            )
+            self._placeholder_values.update(built_expression.attribute_value_placeholders)
 
             return built_expression.condition_expression
         # Use the user provided value if it is not a ConditonBase object.
@@ -286,9 +275,7 @@ class ParameterTransformer:
     ) -> None:
         type_name = model.type_name
         if type_name in ["structure", "map", "list"]:
-            getattr(self, "_transform_%s" % type_name)(
-                model, params, transformation, target_shape
-            )
+            getattr(self, "_transform_%s" % type_name)(model, params, transformation, target_shape)
 
     def _transform_structure(
         self,
@@ -325,9 +312,7 @@ class ParameterTransformer:
             if value_shape == target_shape:
                 params[key] = transformation(value)
             else:
-                self._transform_parameters(
-                    value_model, params[key], transformation, target_shape
-                )
+                self._transform_parameters(value_model, params[key], transformation, target_shape)
 
     def _transform_list(
         self,
@@ -344,6 +329,4 @@ class ParameterTransformer:
             if member_shape == target_shape:
                 params[i] = transformation(item)
             else:
-                self._transform_parameters(
-                    member_model, params[i], transformation, target_shape
-                )
+                self._transform_parameters(member_model, params[i], transformation, target_shape)

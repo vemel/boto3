@@ -22,9 +22,7 @@ from boto3.resources.model import ResourceModel
 
 class BotocoreSignatureMixin:
     @classmethod
-    def _add_custom_method(
-        cls, section: DocumentStructure, name: str, method: Any
-    ) -> None:
+    def _add_custom_method(cls, section: DocumentStructure, name: str, method: Any) -> None:
         cls._document_custom_signature(section, name, method)
         method_intro_section = section.add_new_section("method-intro")
         method_intro_section.writeln("")
@@ -33,9 +31,7 @@ class BotocoreSignatureMixin:
             method_intro_section.style.write_py_doc_string(doc_string)
 
     @staticmethod
-    def _document_custom_signature(
-        section: DocumentStructure, name: str, method: Any
-    ) -> None:
+    def _document_custom_signature(section: DocumentStructure, name: str, method: Any) -> None:
         signature = inspect.signature(method)
         parameters = []
         for parameter_name, parameter_data in signature.parameters.items():

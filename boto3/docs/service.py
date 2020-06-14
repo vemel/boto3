@@ -72,9 +72,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
         self.paginator_api(doc_structure.get_section("paginators"))
         self.waiter_api(doc_structure.get_section("waiters"))
         if self._service_resource:
-            self._document_service_resource(
-                doc_structure.get_section("service-resource")
-            )
+            self._document_service_resource(doc_structure.get_section("service-resource"))
             self._document_resources(doc_structure.get_section("resources"))
         self._document_examples(doc_structure.get_section("examples"))
         return doc_structure.flush_structure()
@@ -90,16 +88,12 @@ class ServiceDocumenter(BaseServiceDocumenter):
 
     def _document_service_resource(self, section: DocumentStructure) -> None:
         assert self._service_resource
-        ServiceResourceDocumenter(
-            self._service_resource, self._session
-        ).document_resource(section)
+        ServiceResourceDocumenter(self._service_resource, self._session).document_resource(section)
 
     def _document_resources(self, section: DocumentStructure) -> None:
         temp_identifier_value = "foo"
         loader = self._session.get_component("data_loader")
-        json_resource_model = loader.load_service_model(
-            self._service_name, "resources-1"
-        )
+        json_resource_model = loader.load_service_model(self._service_name, "resources-1")
         assert self._service_resource
         assert self._service_resource.meta.client
         service_model = self._service_resource.meta.client.meta.service_model
@@ -127,9 +121,7 @@ class ServiceDocumenter(BaseServiceDocumenter):
             )
 
     def _get_example_file(self) -> str:
-        return os.path.realpath(
-            os.path.join(self.EXAMPLE_PATH, self._service_name + ".rst")
-        )
+        return os.path.realpath(os.path.join(self.EXAMPLE_PATH, self._service_name + ".rst"))
 
     def _document_examples(self, section: DocumentStructure) -> None:
         examples_file = self._get_example_file()

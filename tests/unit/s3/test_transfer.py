@@ -118,30 +118,22 @@ class TestS3Transfer(unittest.TestCase):
     def test_upload_file(self):
         extra_args = {"ACL": "public-read"}
         self.transfer.upload_file("smallfile", "bucket", "key", extra_args=extra_args)
-        self.manager.upload.assert_called_with(
-            "smallfile", "bucket", "key", extra_args, []
-        )
+        self.manager.upload.assert_called_with("smallfile", "bucket", "key", extra_args, [])
 
     def test_download_file(self):
         extra_args = {
             "SSECustomerKey": "foo",
             "SSECustomerAlgorithm": "AES256",
         }
-        self.transfer.download_file(
-            "bucket", "key", "/tmp/smallfile", extra_args=extra_args
-        )
-        self.manager.download.assert_called_with(
-            "bucket", "key", "/tmp/smallfile", extra_args, []
-        )
+        self.transfer.download_file("bucket", "key", "/tmp/smallfile", extra_args=extra_args)
+        self.manager.download.assert_called_with("bucket", "key", "/tmp/smallfile", extra_args, [])
 
     def test_upload_wraps_callback(self):
         self.transfer.upload_file("smallfile", "bucket", "key", callback=self.callback)
         self.assert_callback_wrapped_in_subscriber(self.manager.upload.call_args)
 
     def test_download_wraps_callback(self):
-        self.transfer.download_file(
-            "bucket", "key", "/tmp/smallfile", callback=self.callback
-        )
+        self.transfer.download_file("bucket", "key", "/tmp/smallfile", callback=self.callback)
         self.assert_callback_wrapped_in_subscriber(self.manager.download.call_args)
 
     def test_propogation_of_retry_error(self):
@@ -163,9 +155,7 @@ class TestS3Transfer(unittest.TestCase):
         self.assertIsInstance(transfer, S3Transfer)
 
     def test_can_create_with_extra_configurations(self):
-        transfer = S3Transfer(
-            client=mock.Mock(), config=TransferConfig(), osutil=OSUtils()
-        )
+        transfer = S3Transfer(client=mock.Mock(), config=TransferConfig(), osutil=OSUtils())
         self.assertIsInstance(transfer, S3Transfer)
 
     def test_client_or_manager_is_required(self):

@@ -76,8 +76,7 @@ def lazy_call(full_name: str, **kwargs: Any) -> Callable[..., Any]:
 def inject_attribute(class_attributes: Dict[str, Any], name: str, value: Any) -> None:
     if name in class_attributes:
         raise RuntimeError(
-            'Cannot inject class attribute "%s", attribute '
-            "already exists in class dict." % name
+            'Cannot inject class attribute "%s", attribute ' "already exists in class dict." % name
         )
 
     class_attributes[name] = value
@@ -93,14 +92,12 @@ class LazyLoadedWaiterModel:
     when the docstring is generated/accessed.
     """
 
-    def __init__(
-        self, bc_session: BotocoreSession, service_name: str, api_version: str
-    ) -> None:
+    def __init__(self, bc_session: BotocoreSession, service_name: str, api_version: str) -> None:
         self._session = bc_session
         self._service_name = service_name
         self._api_version = api_version
 
     def get_waiter(self, waiter_name: str) -> Waiter:
-        return self._session.get_waiter_model(
-            self._service_name, self._api_version
-        ).get_waiter(waiter_name)
+        return self._session.get_waiter_model(self._service_name, self._api_version).get_waiter(
+            waiter_name
+        )

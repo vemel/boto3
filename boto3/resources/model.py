@@ -71,9 +71,7 @@ class Action:
         #: (:py:class:`ResponseResource`) This action's resource or ``None``
         self._resource = None
         if "resource" in definition:
-            self._resource = ResponseResource(
-                definition.get("resource", {}), resource_defs
-            )
+            self._resource = ResponseResource(definition.get("resource", {}), resource_defs)
         #: (``string``) The JMESPath search path or ``None``
         self.path = definition.get("path")
 
@@ -205,9 +203,7 @@ class ResponseResource:
     :param resource_defs: All resources defined in the service
     """
 
-    def __init__(
-        self, definition: Dict[str, Any], resource_defs: Dict[str, Any]
-    ) -> None:
+    def __init__(self, definition: Dict[str, Any], resource_defs: Dict[str, Any]) -> None:
         self._definition = definition
         self._resource_defs = resource_defs
 
@@ -238,9 +234,7 @@ class ResponseResource:
 
         :type: :py:class:`ResourceModel`
         """
-        return ResourceModel(
-            self.type, self._resource_defs[self.type], self._resource_defs
-        )
+        return ResourceModel(self.type, self._resource_defs[self.type], self._resource_defs)
 
 
 class Collection(Action):
@@ -355,9 +349,7 @@ class ResourceModel:
                     break
 
             if not data_required:
-                self._load_name_with_category(
-                    names, name, "subresource", snake_case=False
-                )
+                self._load_name_with_category(names, name, "subresource", snake_case=False)
             else:
                 self._load_name_with_category(names, name, "reference")
 
@@ -567,9 +559,7 @@ class ResourceModel:
 
                     identifiers: List[Dict[str, str]] = []
                     for identifier in resource_def.get("identifiers", []):
-                        identifiers.append(
-                            {"target": identifier["name"], "source": "input"}
-                        )
+                        identifiers.append({"target": identifier["name"], "source": "input"})
                     fake_has = {"resource": {"type": name, "identifiers": identifiers}}
 
                     definition[name] = fake_has

@@ -73,9 +73,7 @@ class ActionDocumenter(BaseDocumenter):
                     service_model=self._service_model,
                 )
             else:
-                self._add_custom_method(
-                    action_section, action_name, resource_actions[action_name]
-                )
+                self._add_custom_method(action_section, action_name, resource_actions[action_name])
 
 
 def document_action(
