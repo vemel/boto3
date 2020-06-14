@@ -45,9 +45,8 @@ class SubResourceDocumenter(BaseDocumenter):
             ),
             intro_link="subresources_intro",
         )
-        assert self._resource.meta.resource_model
         sub_resources = sorted(
-            self._resource.meta.resource_model.subresources,
+            self.resource_model.subresources,
             key=lambda sub_resource: sub_resource.name,
         )
         sub_resources_list: List[str] = []

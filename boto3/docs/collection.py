@@ -34,8 +34,7 @@ else:
 
 class CollectionDocumenter(BaseDocumenter):
     def document_collections(self, section: DocumentStructure) -> None:
-        assert self._resource.meta.resource_model
-        collections = self._resource.meta.resource_model.collections
+        collections = self.resource_model.collections
         collections_list: List[str] = []
         add_resource_type_overview(
             section=section,
@@ -62,25 +61,24 @@ class CollectionDocumenter(BaseDocumenter):
             batch_actions[batch_action.name] = batch_action
 
         for method in sorted(methods):
-            assert self._resource.meta.client
             method_section = section.add_new_section(method)
             if method in batch_actions:
                 document_batch_action(
                     section=method_section,
                     resource_name=self._resource_name,
-                    event_emitter=self._resource.meta.client.meta.events,
+                    event_emitter=self.client.meta.events,
                     batch_action_model=batch_actions[method],
                     collection_model=collection,
-                    service_model=self._resource.meta.client.meta.service_model,
+                    service_model=self.client.meta.service_model,
                 )
             else:
                 document_collection_method(
                     section=method_section,
                     resource_name=self._resource_name,
                     action_name=method,
-                    event_emitter=self._resource.meta.client.meta.events,
+                    event_emitter=self.client.meta.events,
                     collection_model=collection,
-                    service_model=self._resource.meta.client.meta.service_model,
+                    service_model=self.client.meta.service_model,
                 )
 
 

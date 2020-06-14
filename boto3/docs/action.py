@@ -56,21 +56,19 @@ class ActionDocumenter(BaseDocumenter):
         for action_name in sorted(resource_actions):
             action_section = section.add_new_section(action_name)
             if action_name in ["load", "reload"] and self._resource_model.load:
-                assert self._resource.meta.client
                 document_load_reload_action(
                     section=action_section,
                     action_name=action_name,
                     resource_name=self._resource_name,
-                    event_emitter=self._resource.meta.client.meta.events,
+                    event_emitter=self.client.meta.events,
                     load_model=self._resource_model.load,
                     service_model=self._service_model,
                 )
             elif action_name in modeled_actions:
-                assert self._resource.meta.client
                 document_action(
                     section=action_section,
                     resource_name=self._resource_name,
-                    event_emitter=self._resource.meta.client.meta.events,
+                    event_emitter=self.client.meta.events,
                     action_model=modeled_actions[action_name],
                     service_model=self._service_model,
                 )

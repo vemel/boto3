@@ -142,8 +142,7 @@ class ResourceDocumenter(BaseDocumenter):
                     section.style.li(":py:meth:`%s()`" % member)
 
     def _add_identifiers(self, section: DocumentStructure) -> None:
-        assert self._resource.meta.resource_model
-        identifiers = self._resource.meta.resource_model.identifiers
+        identifiers = self.resource_model.identifiers
         section = section.add_new_section("identifiers")
         member_list: List[str] = []
         if identifiers:
@@ -167,8 +166,7 @@ class ResourceDocumenter(BaseDocumenter):
             )
 
     def _add_attributes(self, section: DocumentStructure) -> None:
-        assert self._resource.meta.client
-        service_model = self._resource.meta.client.meta.service_model
+        service_model = self.client.meta.service_model
         attributes: Dict[str, Any] = {}
         if self.resource_model.shape:
             shape = service_model.shape_for(self.resource_model.shape)
