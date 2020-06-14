@@ -10,10 +10,12 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from typing import Callable, Any, Dict
+from typing import Callable, Any, Dict, List
+
+from botocore.client import BaseClient
 
 
-def inject_create_tags(event_name: str, class_attributes: Dict[str, Any], **kwargs: Any) -> Callable[..., Any]:
+def inject_create_tags(event_name: str, class_attributes: Dict[str, Any], **kwargs: Any) -> None:
     """This injects a custom create_tags method onto the ec2 service resource
 
     This is needed because the resource model is not able to express
@@ -23,7 +25,7 @@ def inject_create_tags(event_name: str, class_attributes: Dict[str, Any], **kwar
     class_attributes['create_tags'] = create_tags
 
 
-def create_tags(self, **kwargs):
+def create_tags(self: BaseClient, **kwargs: Any) -> List[Dict[str, Any]]:
     # Call the client method
     self.meta.client.create_tags(**kwargs)
     resources = kwargs.get('Resources', [])

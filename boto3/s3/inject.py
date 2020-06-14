@@ -10,13 +10,14 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Callable, IO
 
 from botocore.exceptions import ClientError
+from botocore.client import BaseClient
 
 from boto3.s3.transfer import create_transfer_manager
 from boto3.s3.transfer import TransferConfig, S3Transfer
-from boto3.s3.transfer import ProgressCallbackInvoker
+from boto3.s3.transfer import ProgressCallbackInvoker, ProgressCallbackType
 from boto3 import utils
 
 
@@ -52,11 +53,11 @@ def inject_object_methods(class_attributes: Dict[str, Any], **kwargs: Any) -> No
         class_attributes, 'download_fileobj', object_download_fileobj)
 
 
-def inject_object_summary_methods(class_attributes, **kwargs):
+def inject_object_summary_methods(class_attributes: Dict[str, Any], **kwargs: Any) -> None:
     utils.inject_attribute(class_attributes, 'load', object_summary_load)
 
 
-def bucket_load(self, *args, **kwargs):
+def bucket_load(self: BaseClient, *args: Any, **kwargs: Any) -> None:
     """
     Calls s3.Client.list_buckets() to update the attributes of the Bucket
     resource.
@@ -80,7 +81,7 @@ def bucket_load(self, *args, **kwargs):
         if not e.response.get('Error', {}).get('Code') == 'AccessDenied':
             raise
 
-def object_summary_load(self, *args, **kwargs):
+def object_summary_load(self: BaseClient, *args: Any, **kwargs: Any) -> None:
     """
     Calls s3.Client.head_object to update the attributes of the ObjectSummary
     resource.
@@ -92,8 +93,8 @@ def object_summary_load(self, *args, **kwargs):
     self.meta.data = response
 
 
-def upload_file(self, Filename, Bucket, Key, ExtraArgs=None,
-                Callback=None, Config=None):
+def upload_file(self: BaseClient, Filename: str, Bucket: str, Key: str, ExtraArgs: Optional[Dict[str, Any]]=None,
+                Callback: Optional[Callable[..., Any]]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file to an S3 object.
 
     Usage::
@@ -133,8 +134,8 @@ def upload_file(self, Filename, Bucket, Key, ExtraArgs=None,
             extra_args=ExtraArgs, callback=Callback)
 
 
-def download_file(self, Bucket, Key, Filename, ExtraArgs=None,
-                  Callback=None, Config=None):
+def download_file(self: BaseClient, Bucket: str, Key: str, Filename: str, ExtraArgs: Optional[Dict[str, Any]]=None,
+                  Callback: Optional[Callable[..., Any]]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Download an S3 object to a file.
 
     Usage::
@@ -174,8 +175,8 @@ def download_file(self, Bucket, Key, Filename, ExtraArgs=None,
             extra_args=ExtraArgs, callback=Callback)
 
 
-def bucket_upload_file(self, Filename, Key,
-                       ExtraArgs=None, Callback=None, Config=None):
+def bucket_upload_file(self: BaseClient, Filename: str, Key: str,
+                       ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[Callable[..., Any]]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file to an S3 object.
 
     Usage::
@@ -211,8 +212,8 @@ def bucket_upload_file(self, Filename, Key,
         ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)
 
 
-def bucket_download_file(self, Key, Filename,
-                         ExtraArgs=None, Callback=None, Config=None):
+def bucket_download_file(self: BaseClient, Key: str, Filename: str,
+                         ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[Callable[..., Any]]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Download an S3 object to a file.
 
     Usage::
@@ -248,8 +249,8 @@ def bucket_download_file(self, Key, Filename,
         ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)
 
 
-def object_upload_file(self, Filename,
-                       ExtraArgs=None, Callback=None, Config=None):
+def object_upload_file(self: BaseClient, Filename: str,
+                       ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file to an S3 object.
 
     Usage::
@@ -282,8 +283,8 @@ def object_upload_file(self, Filename,
         ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)
 
 
-def object_download_file(self, Filename,
-                         ExtraArgs=None, Callback=None, Config=None):
+def object_download_file(self: BaseClient, Filename: str,
+                       ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Download an S3 object to a file.
 
     Usage::
@@ -316,8 +317,8 @@ def object_download_file(self, Filename,
         ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)
 
 
-def copy(self, CopySource, Bucket, Key, ExtraArgs=None, Callback=None,
-         SourceClient=None, Config=None):
+def copy(self: BaseClient, CopySource: Dict[str, str], Bucket: str, Key: str, ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         SourceClient: BaseClient=None, Config: Optional[TransferConfig]=None) -> Any:
     """Copy an object from one S3 location to another.
 
     This is a managed transfer which will perform a multipart copy in
@@ -381,8 +382,8 @@ def copy(self, CopySource, Bucket, Key, ExtraArgs=None, Callback=None,
         return future.result()
 
 
-def bucket_copy(self, CopySource, Key, ExtraArgs=None, Callback=None,
-                SourceClient=None, Config=None):
+def bucket_copy(self: BaseClient, CopySource: Dict[str, str], Key: str, ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         SourceClient: Optional[BaseClient]=None, Config: Optional[TransferConfig]=None) -> Any:
     """Copy an object from one S3 location to an object in this bucket.
 
     This is a managed transfer which will perform a multipart copy in
@@ -433,8 +434,8 @@ def bucket_copy(self, CopySource, Key, ExtraArgs=None, Callback=None,
         Callback=Callback, SourceClient=SourceClient, Config=Config)
 
 
-def object_copy(self, CopySource, ExtraArgs=None, Callback=None,
-                SourceClient=None, Config=None):
+def object_copy(self: BaseClient, CopySource: Dict[str, str], ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         SourceClient: BaseClient=None, Config: Optional[TransferConfig]=None) -> Any:
     """Copy an object from one S3 location to this object.
 
     This is a managed transfer which will perform a multipart copy in
@@ -484,8 +485,8 @@ def object_copy(self, CopySource, ExtraArgs=None, Callback=None,
         Config=Config)
 
 
-def upload_fileobj(self, Fileobj, Bucket, Key, ExtraArgs=None,
-                   Callback=None, Config=None):
+def upload_fileobj(self: BaseClient, Fileobj: IO[bytes], Bucket: str, Key: str, ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file-like object to S3.
 
     The file-like object must be in binary mode.
@@ -541,8 +542,8 @@ def upload_fileobj(self, Fileobj, Bucket, Key, ExtraArgs=None,
         return future.result()
 
 
-def bucket_upload_fileobj(self, Fileobj, Key, ExtraArgs=None,
-                          Callback=None, Config=None):
+def bucket_upload_fileobj(self: BaseClient, Fileobj: IO[bytes], Key: str, ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file-like object to this bucket.
 
     The file-like object must be in binary mode.
@@ -583,8 +584,8 @@ def bucket_upload_fileobj(self, Fileobj, Key, ExtraArgs=None,
         Callback=Callback, Config=Config)
 
 
-def object_upload_fileobj(self, Fileobj, ExtraArgs=None, Callback=None,
-                          Config=None):
+def object_upload_fileobj(self: BaseClient, Fileobj: IO[bytes], ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Upload a file-like object to this object.
 
     The file-like object must be in binary mode.
@@ -623,8 +624,8 @@ def object_upload_fileobj(self, Fileobj, ExtraArgs=None, Callback=None,
         ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)
 
 
-def download_fileobj(self, Bucket, Key, Fileobj, ExtraArgs=None,
-                     Callback=None, Config=None):
+def download_fileobj(self: BaseClient, Bucket: str, Key: str, Fileobj: IO[bytes], ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Download an object from S3 to a file-like object.
 
     The file-like object must be in binary mode.
@@ -680,8 +681,8 @@ def download_fileobj(self, Bucket, Key, Fileobj, ExtraArgs=None,
         return future.result()
 
 
-def bucket_download_fileobj(self, Key, Fileobj, ExtraArgs=None,
-                            Callback=None, Config=None):
+def bucket_download_fileobj(self: BaseClient, Key: str, Fileobj: IO[bytes], ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Download an object from this bucket to a file-like-object.
 
     The file-like object must be in binary mode.
@@ -722,8 +723,8 @@ def bucket_download_fileobj(self, Key, Fileobj, ExtraArgs=None,
         Callback=Callback, Config=Config)
 
 
-def object_download_fileobj(self, Fileobj, ExtraArgs=None, Callback=None,
-                            Config=None):
+def object_download_fileobj(self: BaseClient, Fileobj: IO[bytes], ExtraArgs: Optional[Dict[str, Any]]=None, Callback: Optional[ProgressCallbackType]=None,
+         Config: Optional[TransferConfig]=None) -> Any:
     """Download this object from S3 to a file-like object.
 
     The file-like object must be in binary mode.

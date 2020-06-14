@@ -147,6 +147,7 @@ class ResourceCollection:
         :return: List of resource instances
         """
         client = self._parent.meta.client
+        assert client
         cleaned_params = self._params.copy()
         limit = cleaned_params.pop('limit', None)
         page_size = cleaned_params.pop('page_size', None)

@@ -593,7 +593,7 @@ class TestDynamoDBHighLevelResource(unittest.TestCase):
     def test_instantiation(self):
         # Instantiate the class.
         dynamodb_class = type(
-            'dynamodb', (DynamoDBHighLevelResource, ServiceResource),
+            'dynamodb', (DynamoDBHighLevelResource,),
             {'meta': self.meta})
         with mock.patch('boto3.dynamodb.transform.TransformationInjector') \
                 as mock_injector:

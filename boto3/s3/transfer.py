@@ -122,12 +122,14 @@ transfer.  For example:
 
 
 """
+from typing import Optional, Any, Callable, List, Dict
+
 from botocore.exceptions import ClientError
-from botocore.compat import six
+from botocore.client import BaseClient
 from s3transfer.exceptions import RetriesExceededError as \
     S3TransferRetriesExceededError
 from s3transfer.manager import TransferConfig as S3TransferConfig
-from s3transfer.manager import TransferManager
+from s3transfer.manager import TransferManager, TransferFuture
 from s3transfer.futures import NonThreadedExecutor
 from s3transfer.subscribers import BaseSubscriber
 from s3transfer.utils import OSUtils
@@ -138,8 +140,10 @@ from boto3.exceptions import RetriesExceededError, S3UploadFailedError
 KB = 1024
 MB = KB * KB
 
+ProgressCallbackType = Callable[[int], None]
 
-def create_transfer_manager(client, config, osutil=None):
+
+def create_transfer_manager(client: BaseClient, config: "TransferConfig", osutil: Optional[OSUtils]=None) -> TransferManager:
     """Creates a transfer manager based on configuration
 
     :type client: boto3.client
@@ -167,13 +171,13 @@ class TransferConfig(S3TransferConfig):
     }
 
     def __init__(self,
-                 multipart_threshold=8 * MB,
-                 max_concurrency=10,
-                 multipart_chunksize=8 * MB,
-                 num_download_attempts=5,
-                 max_io_queue=100,
-                 io_chunksize=256 * KB,
-                 use_threads=True):
+                 multipart_threshold: int=8 * MB,
+                 max_concurrency: int=10,
+                 multipart_chunksize: int=8 * MB,
+                 num_download_attempts: int=5,
+                 max_io_queue: int=100,
+                 io_chunksize: int=256 * KB,
+                 use_threads: bool =True) -> None:
         """Configuration object for managed S3 transfers
 
         :param multipart_threshold: The transfer size threshold for which
@@ -225,7 +229,7 @@ class TransferConfig(S3TransferConfig):
             setattr(self, alias, getattr(self, self.ALIAS[alias]))
         self.use_threads = use_threads
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any) -> None:
         # If the alias name is used, make sure we set the name that it points
         # to as that is what actually is used in governing the TransferManager.
         if name in self.ALIAS:
@@ -234,11 +238,11 @@ class TransferConfig(S3TransferConfig):
         super(TransferConfig, self).__setattr__(name, value)
 
 
-class S3Transfer(object):
+class S3Transfer:
     ALLOWED_DOWNLOAD_ARGS = TransferManager.ALLOWED_DOWNLOAD_ARGS
     ALLOWED_UPLOAD_ARGS = TransferManager.ALLOWED_UPLOAD_ARGS
 
-    def __init__(self, client=None, config=None, osutil=None, manager=None):
+    def __init__(self, client: Optional[BaseClient]=None, config: Optional[TransferConfig]=None, osutil: Optional[OSUtils]=None, manager: Optional[TransferManager]=None) -> None:
         if not client and not manager:
             raise ValueError(
                 'Either a boto3.Client or s3transfer.manager.TransferManager '
@@ -258,8 +262,8 @@ class S3Transfer(object):
         else:
             self._manager = create_transfer_manager(client, config, osutil)
 
-    def upload_file(self, filename, bucket, key,
-                    callback=None, extra_args=None):
+    def upload_file(self, filename: str, bucket: str, key: str,
+                    callback: Optional[ProgressCallbackType]=None, extra_args: Optional[Dict[str, Any]]=None) -> None:
         """Upload a file to an S3 object.
 
         Variants have also been injected into S3 client, Bucket and Object.
@@ -269,7 +273,7 @@ class S3Transfer(object):
             :py:meth:`S3.Client.upload_file`
             :py:meth:`S3.Client.upload_fileobj`
         """
-        if not isinstance(filename, six.string_types):
+        if not isinstance(filename, str):
             raise ValueError('Filename must be a string')
 
         subscribers = self._get_subscribers(callback)
@@ -286,8 +290,8 @@ class S3Transfer(object):
                 "Failed to upload %s to %s: %s" % (
                     filename, '/'.join([bucket, key]), e))
 
-    def download_file(self, bucket, key, filename, extra_args=None,
-                      callback=None):
+    def download_file(self, bucket: str, key: str, filename: str, extra_args: Optional[Dict[str, Any]]=None,
+                      callback: Optional[ProgressCallbackType]=None) -> None:
         """Download an S3 object to a file.
 
         Variants have also been injected into S3 client, Bucket and Object.
@@ -297,7 +301,7 @@ class S3Transfer(object):
             :py:meth:`S3.Client.download_file`
             :py:meth:`S3.Client.download_fileobj`
         """
-        if not isinstance(filename, six.string_types):
+        if not isinstance(filename, str):
             raise ValueError('Filename must be a string')
 
         subscribers = self._get_subscribers(callback)
@@ -313,15 +317,15 @@ class S3Transfer(object):
         except S3TransferRetriesExceededError as e:
             raise RetriesExceededError(e.last_exception)
 
-    def _get_subscribers(self, callback):
+    def _get_subscribers(self, callback: Optional[ProgressCallbackType]) -> List["ProgressCallbackInvoker"]:
         if not callback:
-            return None
+            return []
         return [ProgressCallbackInvoker(callback)]
 
-    def __enter__(self):
+    def __enter__(self) -> "S3Transfer":
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         self._manager.__exit__(*args)
 
 
@@ -331,8 +335,8 @@ class ProgressCallbackInvoker(BaseSubscriber):
     :param callback: A callable that takes a single positional argument for
         how many bytes were transferred.
     """
-    def __init__(self, callback):
+    def __init__(self, callback: ProgressCallbackType) -> None:
         self._callback = callback
 
-    def on_progress(self, bytes_transferred, **kwargs):
+    def on_progress(self, bytes_transferred: int, **kwargs: Any) -> None:
         self._callback(bytes_transferred)

@@ -119,7 +119,7 @@ class TestS3Transfer(unittest.TestCase):
         self.transfer.upload_file('smallfile', 'bucket', 'key',
                                   extra_args=extra_args)
         self.manager.upload.assert_called_with(
-            'smallfile', 'bucket', 'key', extra_args, None)
+            'smallfile', 'bucket', 'key', extra_args, [])
 
     def test_download_file(self):
         extra_args = {
@@ -129,7 +129,7 @@ class TestS3Transfer(unittest.TestCase):
         self.transfer.download_file('bucket', 'key', '/tmp/smallfile',
                                     extra_args=extra_args)
         self.manager.download.assert_called_with(
-            'bucket', 'key', '/tmp/smallfile', extra_args, None)
+            'bucket', 'key', '/tmp/smallfile', extra_args, [])
 
     def test_upload_wraps_callback(self):
         self.transfer.upload_file(

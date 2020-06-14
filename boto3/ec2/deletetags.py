@@ -13,6 +13,7 @@
 from typing import Any
 
 from botocore.hooks import BaseEventHooks
+from botocore.client import BaseClient
 
 from boto3.resources.action import CustomModeledAction
 
@@ -33,6 +34,6 @@ def inject_delete_tags(event_emitter: BaseEventHooks, **kwargs: Any) -> None:
     action.inject(**kwargs)
 
 
-def delete_tags(self, **kwargs: Any) -> Any:
+def delete_tags(self: BaseClient, **kwargs: Any) -> Any:
     kwargs['Resources'] = [self.id]
     return self.meta.client.delete_tags(**kwargs)

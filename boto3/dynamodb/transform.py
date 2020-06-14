@@ -11,26 +11,32 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import copy
+from typing import Any, List, Dict, Callable, Optional
+
+from botocore.model import OperationModel
 
 from boto3.compat import collections_abc
 from boto3.dynamodb.types import TypeSerializer, TypeDeserializer
 from boto3.dynamodb.conditions import ConditionBase
 from boto3.dynamodb.conditions import ConditionExpressionBuilder
 from boto3.docs.utils import DocumentModifiedShape
+from boto3.resources.base import ResourceMeta, ServiceResource
 
 
-def register_high_level_interface(base_classes, **kwargs):
+def register_high_level_interface(base_classes: List[Any], **kwargs: Any) -> None:
     base_classes.insert(0, DynamoDBHighLevelResource)
 
 
-def copy_dynamodb_params(params, **kwargs):
+def copy_dynamodb_params(params: Any, **kwargs: Any) -> Any:
     return copy.deepcopy(params)
 
 
-class DynamoDBHighLevelResource(object):
-    def __init__(self, *args, **kwargs):
-        super(DynamoDBHighLevelResource, self).__init__(*args, **kwargs)
+class DynamoDBHighLevelResource(ServiceResource):
+    meta: ResourceMeta
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        assert self.meta.client
         # Apply handler that creates a copy of the user provided dynamodb
         # item such that it can be modified.
         self.meta.client.meta.events.register(
@@ -120,27 +126,16 @@ class DynamoDBHighLevelResource(object):
             unique_id='dynamodb-cond-expression-docs')
 
 
-class TransformationInjector(object):
+class TransformationInjector:
     """Injects the transformations into the user provided parameters."""
-    def __init__(self, transformer=None, condition_builder=None,
-                 serializer=None, deserializer=None):
-        self._transformer = transformer
-        if transformer is None:
-            self._transformer = ParameterTransformer()
+    def __init__(self, transformer: Optional["ParameterTransformer"]=None, condition_builder: Optional[ConditionExpressionBuilder]=None,
+                 serializer: Optional[TypeSerializer]=None, deserializer: Optional[TypeDeserializer]=None) -> None:
+        self._transformer = transformer or ParameterTransformer()
+        self._condition_builder = condition_builder or ConditionExpressionBuilder()
+        self._serializer = serializer or TypeSerializer()
+        self._deserializer = deserializer or TypeDeserializer()
 
-        self._condition_builder = condition_builder
-        if condition_builder is None:
-            self._condition_builder = ConditionExpressionBuilder()
-
-        self._serializer = serializer
-        if serializer is None:
-            self._serializer = TypeSerializer()
-
-        self._deserializer = deserializer
-        if deserializer is None:
-            self._deserializer = TypeDeserializer()
-
-    def inject_condition_expressions(self, params, model, **kwargs):
+    def inject_condition_expressions(self, params: Dict[str, Any], model: OperationModel, **kwargs: Any) -> None:
         """Injects the condition expression transformation into the parameters
 
         This injection includes transformations for ConditionExpression shapes
@@ -148,8 +143,8 @@ class TransformationInjector(object):
         values that are generated when transforming the condition expressions.
         """
         self._condition_builder.reset()
-        generated_names = {}
-        generated_values = {}
+        generated_names: Dict[str, Any] = {}
+        generated_values: Dict[str, Any] = {}
 
         # Create and apply the Condition Expression transformation.
         transformation = ConditionExpressionTransformation(
@@ -190,13 +185,13 @@ class TransformationInjector(object):
             if generated_values:
                 params[expr_attr_values_input] = generated_values
 
-    def inject_attribute_value_input(self, params, model, **kwargs):
+    def inject_attribute_value_input(self, params: Dict[str, Any], model: OperationModel, **kwargs: Any) -> None:
         """Injects DynamoDB serialization into parameter input"""
         self._transformer.transform(
             params, model.input_shape, self._serializer.serialize,
             'AttributeValue')
 
-    def inject_attribute_value_output(self, parsed, model, **kwargs):
+    def inject_attribute_value_output(self, parsed: Dict[str, Any], model: OperationModel, **kwargs: Any) -> None:
         """Injects DynamoDB deserialization into responses"""
         if model.output_shape is not None:
             self._transformer.transform(
@@ -205,20 +200,20 @@ class TransformationInjector(object):
             )
 
 
-class ConditionExpressionTransformation(object):
+class ConditionExpressionTransformation:
     """Provides a transformation for condition expressions
 
     The ``ParameterTransformer`` class can call this class directly
     to transform the condition expressions in the parameters provided.
     """
-    def __init__(self, condition_builder, placeholder_names,
-                 placeholder_values, is_key_condition=False):
+    def __init__(self, condition_builder: ConditionExpressionBuilder, placeholder_names: Dict[str, Any],
+                 placeholder_values: Dict[str, Any], is_key_condition: bool=False) -> None:
         self._condition_builder = condition_builder
         self._placeholder_names = placeholder_names
         self._placeholder_values = placeholder_values
         self._is_key_condition = is_key_condition
 
-    def __call__(self, value):
+    def __call__(self, value: Any) -> Any:
         if isinstance(value, ConditionBase):
             # Create a conditional expression string with placeholders
             # for the provided condition.
@@ -235,10 +230,10 @@ class ConditionExpressionTransformation(object):
         return value
 
 
-class ParameterTransformer(object):
+class ParameterTransformer:
     """Transforms the input to and output from botocore based on shape"""
 
-    def transform(self, params, model, transformation, target_shape):
+    def transform(self, params: Dict[str, Any], model: OperationModel, transformation: Callable[..., Any], target_shape: str) -> None:
         """Transforms the dynamodb input to or output from botocore
 
         It applies a specified transformation whenever a specific shape name
@@ -253,15 +248,15 @@ class ParameterTransformer(object):
         self._transform_parameters(
             model, params, transformation, target_shape)
 
-    def _transform_parameters(self, model, params, transformation,
-                              target_shape):
+    def _transform_parameters(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any],
+                              target_shape: str) -> None:
         type_name = model.type_name
         if type_name in ['structure', 'map', 'list']:
             getattr(self, '_transform_%s' % type_name)(
                 model, params, transformation, target_shape)
 
-    def _transform_structure(self, model, params, transformation,
-                             target_shape):
+    def _transform_structure(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any],
+                             target_shape: str) -> None:
         if not isinstance(params, collections_abc.Mapping):
             return
         for param in params:
@@ -275,7 +270,7 @@ class ParameterTransformer(object):
                         member_model, params[param], transformation,
                         target_shape)
 
-    def _transform_map(self, model, params, transformation, target_shape):
+    def _transform_map(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any], target_shape: str) -> None:
         if not isinstance(params, collections_abc.Mapping):
             return
         value_model = model.value
@@ -287,7 +282,7 @@ class ParameterTransformer(object):
                 self._transform_parameters(
                     value_model, params[key], transformation, target_shape)
 
-    def _transform_list(self, model, params, transformation, target_shape):
+    def _transform_list(self, model: OperationModel, params: Dict[str, Any], transformation: Callable[..., Any], target_shape: str) -> None:
         if not isinstance(params, collections_abc.MutableSequence):
             return
         member_model = model.member

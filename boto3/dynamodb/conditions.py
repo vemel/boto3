@@ -12,7 +12,7 @@
 # language governing permissions and limitations under the License.
 from collections import namedtuple
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 from boto3.exceptions import DynamoDBOperationNotSupportedError
 from boto3.exceptions import DynamoDBNeedsConditionError
@@ -22,7 +22,7 @@ from boto3.exceptions import DynamoDBNeedsKeyConditionError
 ATTR_NAME_REGEX = re.compile(r'[^.\[\]]+(?![^\[]*\])')
 
 
-class ConditionBase(object):
+class ConditionBase:
 
     expression_format = ''
     expression_operator = ''
@@ -49,44 +49,44 @@ class ConditionBase(object):
                 'operator': self.expression_operator,
                 'values': self._values}
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if isinstance(other, type(self)):
             if self._values == other._values:
                 return True
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
 
-class AttributeBase(object):
-    def __init__(self, name):
+class AttributeBase:
+    def __init__(self, name: str) -> None:
         self.name = name
 
-    def __and__(self, value):
+    def __and__(self, value: Any) -> ConditionBase:
         raise DynamoDBOperationNotSupportedError('AND', self)
 
-    def __or__(self, value):
+    def __or__(self, value: Any) -> ConditionBase:
         raise DynamoDBOperationNotSupportedError('OR', self)
 
-    def __invert__(self):
+    def __invert__(self) -> ConditionBase:
         raise DynamoDBOperationNotSupportedError('NOT', self)
 
-    def eq(self, value):
+    def eq(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is equal to the value.
 
         :param value: The value that the attribute is equal to.
         """
         return Equals(self, value)
 
-    def lt(self, value):
+    def lt(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is less than the value.
 
         :param value: The value that the attribute is less than.
         """
         return LessThan(self, value)
 
-    def lte(self, value):
+    def lte(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is less than or equal to the
            value.
 
@@ -94,14 +94,14 @@ class AttributeBase(object):
         """
         return LessThanEquals(self, value)
 
-    def gt(self, value):
+    def gt(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is greater than the value.
 
         :param value: The value that the attribute is greater than.
         """
         return GreaterThan(self, value)
 
-    def gte(self, value):
+    def gte(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is greater than or equal to
            the value.
 
@@ -109,14 +109,14 @@ class AttributeBase(object):
         """
         return GreaterThanEquals(self, value)
 
-    def begins_with(self, value):
+    def begins_with(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute begins with the value.
 
         :param value: The value that the attribute begins with.
         """
         return BeginsWith(self, value)
 
-    def between(self, low_value, high_value):
+    def between(self, low_value: Any, high_value: Any) -> ConditionBase:
         """Creates a condition where the attribute is greater than or equal
         to the low value and less than or equal to the high value.
 
@@ -125,10 +125,10 @@ class AttributeBase(object):
         """
         return Between(self, low_value, high_value)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return isinstance(other, type(self)) and self.name == other.name
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
 
@@ -138,17 +138,17 @@ class ConditionAttributeBase(ConditionBase, AttributeBase):
     One example is the Size condition. To complete a condition, you need
     to apply another AttributeBase method like eq().
     """
-    def __init__(self, *values):
+    def __init__(self, *values: Any) -> None:
         ConditionBase.__init__(self, *values)
         # This is assuming the first value to the condition is the attribute
         # in which can be used to generate its attribute base.
         AttributeBase.__init__(self, values[0].name)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return ConditionBase.__eq__(self, other) and \
                AttributeBase.__eq__(self, other)
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
 
@@ -241,14 +241,14 @@ class Key(AttributeBase):
 
 class Attr(AttributeBase):
     """Represents an DynamoDB item's attribute."""
-    def ne(self, value):
+    def ne(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is not equal to the value
 
         :param value: The value that the attribute is not equal to.
         """
         return NotEquals(self, value)
 
-    def is_in(self, value):
+    def is_in(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute is in the value,
 
         :type value: list
@@ -256,22 +256,22 @@ class Attr(AttributeBase):
         """
         return In(self, value)
 
-    def exists(self):
+    def exists(self) -> ConditionBase:
         """Creates a condition where the attribute exists."""
         return AttributeExists(self)
 
-    def not_exists(self):
+    def not_exists(self) -> ConditionBase:
         """Creates a condition where the attribute does not exist."""
         return AttributeNotExists(self)
 
-    def contains(self, value):
+    def contains(self, value: Any) -> ConditionBase:
         """Creates a condition where the attribute contains the value.
 
         :param value: The value the attribute contains.
         """
         return Contains(self, value)
 
-    def size(self):
+    def size(self) -> ConditionBase:
         """Creates a condition for the attribute size.
 
         Note another AttributeBase method must be called on the returned
@@ -279,7 +279,7 @@ class Attr(AttributeBase):
         """
         return Size(self)
 
-    def attribute_type(self, value):
+    def attribute_type(self, value: Any) -> AttributeType:
         """Creates a condition for the attribute type.
 
         :param value: The type of the attribute.
@@ -294,26 +294,26 @@ BuiltConditionExpression = namedtuple(
 )
 
 
-class ConditionExpressionBuilder(object):
+class ConditionExpressionBuilder:
     """This class is used to build condition expressions with placeholders"""
-    def __init__(self):
+    def __init__(self) -> None:
         self._name_count = 0
         self._value_count = 0
         self._name_placeholder = 'n'
         self._value_placeholder = 'v'
 
-    def _get_name_placeholder(self):
+    def _get_name_placeholder(self) -> str:
         return '#' + self._name_placeholder + str(self._name_count)
 
-    def _get_value_placeholder(self):
+    def _get_value_placeholder(self) -> str:
         return ':' + self._value_placeholder + str(self._value_count)
 
-    def reset(self):
+    def reset(self) -> None:
         """Resets the placeholder name and values"""
         self._name_count = 0
         self._value_count = 0
 
-    def build_expression(self, condition, is_key_condition=False):
+    def build_expression(self, condition: ConditionBase, is_key_condition: bool=False) -> BuiltConditionExpression:
         """Builds the condition expression and the dictionary of placeholders.
 
         :type condition: ConditionBase
@@ -334,8 +334,8 @@ class ConditionExpressionBuilder(object):
         """
         if not isinstance(condition, ConditionBase):
             raise DynamoDBNeedsConditionError(condition)
-        attribute_name_placeholders = {}
-        attribute_value_placeholders = {}
+        attribute_name_placeholders: Dict[str, str] = {}
+        attribute_value_placeholders: Dict[str, str] = {}
         condition_expression = self._build_expression(
             condition, attribute_name_placeholders,
             attribute_value_placeholders, is_key_condition=is_key_condition)
@@ -345,8 +345,8 @@ class ConditionExpressionBuilder(object):
             attribute_value_placeholders=attribute_value_placeholders
         )
 
-    def _build_expression(self, condition, attribute_name_placeholders,
-                          attribute_value_placeholders, is_key_condition):
+    def _build_expression(self, condition: ConditionBase, attribute_name_placeholders: Dict[str, str],
+                          attribute_value_placeholders: Dict[str, str], is_key_condition: bool) -> str:
         expression_dict = condition.get_expression()
         replaced_values = []
         for value in expression_dict['values']:
@@ -362,9 +362,9 @@ class ConditionExpressionBuilder(object):
         return expression_dict['format'].format(
             *replaced_values, operator=expression_dict['operator'])
 
-    def _build_expression_component(self, value, attribute_name_placeholders,
-                                    attribute_value_placeholders,
-                                    has_grouped_values, is_key_condition):
+    def _build_expression_component(self, value: Any, attribute_name_placeholders: Dict[str, str],
+                                    attribute_value_placeholders: Dict[str, str],
+                                    has_grouped_values: bool, is_key_condition: bool) -> str:
         # Continue to recurse if the value is a ConditionBase in order
         # to extract out all parts of the expression.
         if isinstance(value, ConditionBase):
@@ -388,7 +388,7 @@ class ConditionExpressionBuilder(object):
             return self._build_value_placeholder(
                 value, attribute_value_placeholders, has_grouped_values)
 
-    def _build_name_placeholder(self, value, attribute_name_placeholders):
+    def _build_name_placeholder(self, value: Any, attribute_name_placeholders: Dict[str, str]) -> str:
         attribute_name = value.name
         # Figure out which parts of the attribute name that needs replacement.
         attribute_name_parts = ATTR_NAME_REGEX.findall(attribute_name)
@@ -405,8 +405,8 @@ class ConditionExpressionBuilder(object):
         # Replace the temporary placeholders with the designated placeholders.
         return placeholder_format % tuple(str_format_args)
 
-    def _build_value_placeholder(self, value, attribute_value_placeholders,
-                                 has_grouped_values=False):
+    def _build_value_placeholder(self, value: Any, attribute_value_placeholders: Dict[str, str],
+                                 has_grouped_values: bool=False) -> str:
         # If the values are grouped, we need to add a placeholder for
         # each element inside of the actual value.
         if has_grouped_values:

@@ -78,6 +78,7 @@ def build_identifiers(
         elif source == 'data':
             # If this is a data member then it may incur a load
             # action before returning the value.
+            assert identifier.path
             value = get_data_member(parent, identifier.path)
         elif source == 'input':
             # This value is set by the user, so ignore it here

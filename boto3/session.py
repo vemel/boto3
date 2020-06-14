@@ -26,11 +26,10 @@ import boto3
 import boto3.utils
 from boto3.exceptions import ResourceNotExistsError, UnknownAPIVersionError
 from boto3.resources.base import ServiceResource
+from boto3.resources.factory import ResourceFactory
 
-from .resources.factory import ResourceFactory
 
-
-class Session(object):
+class Session:
     """
     A session stores configuration state and allows you to create service
     clients and resources.
@@ -52,12 +51,12 @@ class Session(object):
     """
     def __init__(
         self,
-        aws_access_key_id: str = None,
-        aws_secret_access_key: str = None,
-        aws_session_token: str = None,
-        region_name: str = None,
-        botocore_session: BotocoreSession = None,
-        profile_name: str = None,
+        aws_access_key_id: Optional[str] = None,
+        aws_secret_access_key: Optional[str] = None,
+        aws_session_token: Optional[str] = None,
+        region_name: Optional[str] = None,
+        botocore_session: Optional[BotocoreSession] = None,
+        profile_name: Optional[str] = None,
     ):
         if botocore_session is not None:
             self._session = botocore_session

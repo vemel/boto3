@@ -11,12 +11,19 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import logging
+from typing import Optional, List, Any, Iterable, Dict, Type
+
+from botocore.client import BaseClient
+
+from boto3.resources.base import ResourceMeta
 
 
 logger = logging.getLogger(__name__)
 
+Request = Dict[str, Any]
 
-def register_table_methods(base_classes, **kwargs):
+
+def register_table_methods(base_classes: List[Any], **kwargs: Any) -> None:
     base_classes.insert(0, TableResource)
 
 
@@ -25,11 +32,11 @@ def register_table_methods(base_classes, **kwargs):
 # base class for every method we can just update this
 # class instead.  Just be sure to move the bulk of the
 # actual method implementation to another class.
-class TableResource(object):
-    def __init__(self, *args, **kwargs):
-        super(TableResource, self).__init__(*args, **kwargs)
+class TableResource:
+    name: str
+    meta: ResourceMeta
 
-    def batch_writer(self, overwrite_by_pkeys=None):
+    def batch_writer(self, overwrite_by_pkeys: Iterable[str]=tuple()) -> "BatchWriter":
         """Create a batch writer object.
 
         This method creates a context manager for writing
@@ -60,10 +67,10 @@ class TableResource(object):
                            overwrite_by_pkeys=overwrite_by_pkeys)
 
 
-class BatchWriter(object):
+class BatchWriter:
     """Automatically handle batch writes to DynamoDB for a single table."""
-    def __init__(self, table_name, client, flush_amount=25,
-                 overwrite_by_pkeys=None):
+    def __init__(self, table_name: str, client: BaseClient, flush_amount: int=25,
+                 overwrite_by_pkeys: Iterable[str]=tuple()):
         """
 
         :type table_name: str
@@ -93,23 +100,23 @@ class BatchWriter(object):
         """
         self._table_name = table_name
         self._client = client
-        self._items_buffer = []
+        self._items_buffer: List[Dict[str, Any]] = []
         self._flush_amount = flush_amount
         self._overwrite_by_pkeys = overwrite_by_pkeys
 
-    def put_item(self, Item):
+    def put_item(self, Item: Dict[str, Any]) -> None:
         self._add_request_and_process({'PutRequest': {'Item': Item}})
 
-    def delete_item(self, Key):
+    def delete_item(self, Key: Dict[str, Any]) -> None:
         self._add_request_and_process({'DeleteRequest': {'Key': Key}})
 
-    def _add_request_and_process(self, request):
+    def _add_request_and_process(self, request: Request) -> None:
         if self._overwrite_by_pkeys:
             self._remove_dup_pkeys_request_if_any(request)
         self._items_buffer.append(request)
         self._flush_if_needed()
 
-    def _remove_dup_pkeys_request_if_any(self, request):
+    def _remove_dup_pkeys_request_if_any(self, request: Request) -> None:
         pkey_values_new = self._extract_pkey_values(request)
         for item in self._items_buffer:
             if self._extract_pkey_values(item) == pkey_values_new:
@@ -117,20 +124,20 @@ class BatchWriter(object):
                 logger.debug("With overwrite_by_pkeys enabled, skipping "
                              "request:%s", item)
 
-    def _extract_pkey_values(self, request):
+    def _extract_pkey_values(self, request: Request) -> List[str]:
         if request.get('PutRequest'):
             return [request['PutRequest']['Item'][key]
                     for key in self._overwrite_by_pkeys]
         elif request.get('DeleteRequest'):
             return [request['DeleteRequest']['Key'][key]
                     for key in self._overwrite_by_pkeys]
-        return None
+        return []
 
-    def _flush_if_needed(self):
+    def _flush_if_needed(self) -> None:
         if len(self._items_buffer) >= self._flush_amount:
             self._flush()
 
-    def _flush(self):
+    def _flush(self) -> None:
         items_to_send = self._items_buffer[:self._flush_amount]
         self._items_buffer = self._items_buffer[self._flush_amount:]
         response = self._client.batch_write_item(
@@ -146,10 +153,10 @@ class BatchWriter(object):
         logger.debug("Batch write sent %s, unprocessed: %s",
                      len(items_to_send), len(self._items_buffer))
 
-    def __enter__(self):
+    def __enter__(self) -> "BatchWriter":
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type: Type[BaseException], exc_value: BaseException, tb: Any) -> None:
         # When we exit, we need to keep flushing whatever's left
         # until there's nothing left in our items buffer.
         while self._items_buffer:
