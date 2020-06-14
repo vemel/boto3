@@ -220,8 +220,7 @@ class ResourceHandler(object):
         :param response: Low-level operation response.
         """
         resource_name = self.resource_model.type
-        json_definition = self.service_context.resource_json_definitions.get(
-            resource_name)
+        json_definition = self.service_context.resource_json_definitions[resource_name]
 
         # Load the new resource class that will result from this action.
         resource_cls = self.factory.load_from_definition(

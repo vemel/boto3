@@ -126,7 +126,7 @@ class BatchAction(ServiceAction):
     :type service_context: :py:class:`~boto3.utils.ServiceContext`
     :param service_context: Context about the AWS service
     """
-    def __call__(self, parent: ResourceCollection, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
+    def __call__(self, parent: ServiceResource, *args: Any, **kwargs: Any) -> List[Dict[str, Any]]:
         """
         Perform the batch action's operation on every page of results
         from the collection.
@@ -146,6 +146,7 @@ class BatchAction(ServiceAction):
         # Unlike the simple action above, a batch action must operate
         # on batches (or pages) of items. So we get each page, construct
         # the necessary parameters and call the batch operation.
+        assert isinstance(parent, ResourceCollection)
         for page in parent.pages():
             params: Dict[str, Any] = {}
             for index, resource in enumerate(page):
@@ -219,6 +220,7 @@ class WaiterAction(object):
                     self._waiter_resource_name, params)
 
         client = parent.meta.client
+        assert client
         waiter = client.get_waiter(client_waiter_name)
         response = waiter.wait(**params)
 

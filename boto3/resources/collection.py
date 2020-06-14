@@ -36,10 +36,9 @@ else:
 logger = logging.getLogger(__name__)
 
 ResourceCollectionType = TypeVar("ResourceCollectionType", bound="ResourceCollection")
-ServiceResourceType = TypeVar("ServiceResourceType", bound="ServiceResource")
 
 
-class ResourceCollection:
+class ResourceCollection(ServiceResource):
     """
     Represents a collection of resources, which can be iterated through,
     optionally with filtering. Collections automatically handle pagination

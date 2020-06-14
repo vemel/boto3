@@ -43,7 +43,7 @@ class ServiceContext:
         service_name: str,
         service_model: ServiceModel,
         service_waiter_model: WaiterModel,
-        resource_json_definitions: Dict[str, Any],
+        resource_json_definitions: Dict[str, Dict[str, Any]],
     ) -> None:
         self.service_name = service_name
         self.service_model = service_model
